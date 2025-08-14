@@ -1,0 +1,34 @@
+@page "/tournament/{id:guid}"
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@inject ITennisApiClient TennisApiClient
+
+<h3>Détail du tournoi</h3>
+
+@if (tournament == null)
+{
+    <p><em>Chargement...</em></p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">@tournament.Name</h5>
+            <h6 class="card-subtitle mb-2 text-muted">@tournament.Location</h6>
+            <p>@tournament.Description</p>
+            <p>
+                Dates : @tournament.StartDate.ToString("dd MMM yyyy") 
+                - @tournament.EndDate.ToString("dd MMM yyyy")
+            </p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private TournamentDto? tournament;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tournament = await TennisApiClient.TournamentsGETAsync(Id);
+    }
+}

@@ -1,0 +1,59 @@
+@page "/tournaments"
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@inject ITennisApiClient TennisApiClient
+
+<h3>Tournois</h3>
+
+@if (tournaments == null)
+{
+    <p><em>Chargement...</em></p>
+}
+else if (!tournaments.Any())
+{
+    <p>No tournament found.</p>
+}
+else
+{
+     <div class="row">
+        @foreach (var t in tournaments)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@t.Name</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">@t.Location</h6>
+                        <p class="card-text">
+                            @t.Description
+                        </p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                @t.StartDate.ToString("dd MMM yyyy") - @t.EndDate.ToString("dd MMM yyyy")
+                            </small>
+                        </p>
+                        <a href="@($"/tournament/{t.Id}")" class="btn btn-primary btn-sm">
+                            Voir détails
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+
+@code {
+    private IEnumerable<TournamentDto>? tournaments;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            tournaments = await TennisApiClient.TournamentsAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error when retrieving tournaments : {ex.Message}");
+            tournaments = new List<TournamentDto>();
+        }
+    }
+}
