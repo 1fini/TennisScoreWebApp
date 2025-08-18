@@ -1,8 +1,10 @@
 @page "/tournament/{id:guid}"
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@using Microsoft.AspNetCore.Components.Routing
 @inject ITennisApiClient TennisApiClient
+@inject NavigationManager Navigation
 
-<h3>Détail du tournoi</h3>
+<h3>Tournament Info</h3>
 
 @if (tournament == null)
 {
@@ -21,10 +23,34 @@ else
             </p>
         </div>
     </div>
+    @if (tournament.Matches == null || !tournament.Matches.Any())
+    {
+        <p>Aucun match disponible pour ce tournoi.</p>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var match in tournament.Matches)
+            {
+                <div class="col-md-4 mb-3">
+                <NavLink class="card h-100 text-decoration-none text-dark" href="@($"/match/{match.Id}")">
+                    <div class="card-body">
+                        <h5 class="card-title">@match.Player1LastName vs @match.Player2LastName</h5>
+                        <p class="card-text">
+                            <strong>Statut :</strong> @match.EndTime <br />
+                            <strong>Score :</strong> @match.CurrentScore
+                        </p>
+                    </div>
+                </NavLink>
+                </div>
+            }
+        </div>
+    }
 }
 
 @code {
-    [Parameter] public Guid Id { get; set; }
+    [Parameter] 
+    public Guid Id { get; set; }
     private TournamentDto? tournament;
 
     protected override async Task OnInitializedAsync()

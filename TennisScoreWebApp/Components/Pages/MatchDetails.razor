@@ -1,0 +1,91 @@
+@page "/match/{MatchId:guid}"
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@inject NavigationManager Navigation
+@inject ITennisApiClient TennisApiClient
+
+@rendermode InteractiveServer
+
+<h2 class="mb-4">Détails du Match</h2>
+
+@if (Match == null)
+{
+    <p><em>Chargement en cours...</em></p>
+}
+else
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h3 class="card-title mb-3">@Match.Player1.LastName vs @Match.Player2.LastName</h3>
+            <p class="card-text mb-2"><strong>Tournoi :</strong> @Match.TournamentName</p>
+            <p class="card-text mb-3"><strong>Date :</strong> @Match.StartTime:dd MMM yyyy HH:mm</p>
+            
+            <h5>Score par set</h5>
+            @if (Match.Sets != null && Match.Sets.Any())
+            {
+                <table class="table table-striped table-bordered w-auto text-center align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Joueur</th>
+                            @for (int i = 0; i < Match.Sets.Count; i++)
+                            {
+                                <th>Set @(i + 1)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-start">
+                                @Match.Player1.LastName
+                                @if (true)
+                                {
+                                    <span title="Au service" class="ms-1">🎾</span>
+                                }
+                            </td>
+                            @foreach (var set in Match.Sets)
+                            {
+                                <td>@set.Player1Games</td>
+                            }
+                        </tr>
+                        <tr>
+                            <td class="text-start">
+                                @Match.Player2.LastName
+                                @if (false)
+                                {
+                                    <span title="Au service" class="ms-1">🎾</span>
+                                }
+                            </td>
+                            @foreach (var set in Match.Sets)
+                            {
+                                <td>@set.Player2Games</td>
+                            }
+                        </tr>
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p>Match not started yet.</p>
+            }
+
+            <button type="button" class="btn btn-secondary mt-3" @onclick="GoBack">Back to tournament page</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid MatchId { get; set; }
+    private MatchDetailsDto? Match { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Match = await TennisApiClient.MatchesGETAsync(MatchId);
+    }
+
+    private void GoBack()
+    {
+        if (Match?.TournamentId != null)
+            Navigation.NavigateTo($"/tournament/{Match.TournamentId}");
+        else
+            Navigation.NavigateTo("/tournaments");
+    }
+}
