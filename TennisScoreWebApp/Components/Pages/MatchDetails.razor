@@ -26,6 +26,7 @@ else
                     <thead class="table-light">
                         <tr>
                             <th>Joueur</th>
+                            <th>Points</th>
                             @for (int i = 0; i < Match.Sets.Count; i++)
                             {
                                 <th>Set @(i + 1)</th>
@@ -34,12 +35,17 @@ else
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="text-start">
+                            <td class="text-start fw-bold">
                                 @Match.Player1.LastName
-                                @if (true)
+                                @if (true) // Assuming you want to show the server indicator
                                 {
                                     <span title="Au service" class="ms-1">🎾</span>
                                 }
+                            </td>
+                            <td>
+                                <span class="badge bg-warning text-dark fs-6 px-3">
+                                    @(Match.Player1.CurrentScore ?? "0")
+                                </span>
                             </td>
                             @foreach (var set in Match.Sets)
                             {
@@ -47,12 +53,17 @@ else
                             }
                         </tr>
                         <tr>
-                            <td class="text-start">
+                            <td class="text-start fw-bold">
                                 @Match.Player2.LastName
-                                @if (false)
+                                @if (false) //TODO get the property
                                 {
                                     <span title="Au service" class="ms-1">🎾</span>
                                 }
+                            </td>
+                            <td>
+                                <span class="badge bg-warning text-dark fs-6 px-3">
+                                    @(Match.Player2.CurrentScore ?? "0")
+                                </span>
                             </td>
                             @foreach (var set in Match.Sets)
                             {
@@ -61,6 +72,7 @@ else
                         </tr>
                     </tbody>
                 </table>
+
             }
             else
             {
