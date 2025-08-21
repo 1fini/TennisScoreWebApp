@@ -17,7 +17,7 @@ else
         <div class="card-body">
             <h3 class="card-title mb-3">@Match.Player1.LastName vs @Match.Player2.LastName</h3>
             <p class="card-text mb-2"><strong>Tournoi :</strong> @Match.TournamentName</p>
-            <p class="card-text mb-3"><strong>Date :</strong> @Match.StartTime:dd MMM yyyy HH:mm</p>
+            <p class="card-text mb-3"><strong>Date :</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
             
             <h5>Score par set</h5>
             @if (Match.Sets != null && Match.Sets.Any())
@@ -37,7 +37,7 @@ else
                         <tr>
                             <td class="text-start fw-bold">
                                 @Match.Player1.LastName
-                                @if (true) // Assuming you want to show the server indicator
+                                @if (@Match.ServingPlayerId == @Match.Player1.Id)
                                 {
                                     <span title="Au service" class="ms-1">🎾</span>
                                 }
@@ -55,7 +55,7 @@ else
                         <tr>
                             <td class="text-start fw-bold">
                                 @Match.Player2.LastName
-                                @if (false) //TODO get the property
+                                @if (@Match.ServingPlayerId == @Match.Player2.Id)
                                 {
                                     <span title="Au service" class="ms-1">🎾</span>
                                 }

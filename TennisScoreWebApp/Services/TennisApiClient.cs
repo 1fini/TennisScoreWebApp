@@ -1386,6 +1386,14 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
         [System.ComponentModel.DataAnnotations.Range(1, 5)]
         public int BestOfSets { get; set; }
 
+        [Newtonsoft.Json.JsonProperty("servingPlayerLastName", Required = Newtonsoft.Json.Required.Always)]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ServingPlayerLastName { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("servingPlayerFirstName", Required = Newtonsoft.Json.Required.Always)]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ServingPlayerFirstName { get; set; }
+
         [Newtonsoft.Json.JsonProperty("tournamentName", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string TournamentName { get; set; }
 
@@ -1580,6 +1588,10 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
         [Newtonsoft.Json.JsonProperty("player2", Required = Newtonsoft.Json.Required.Always)]
         [System.ComponentModel.DataAnnotations.Required]
         public PlayerDto Player2 { get; set; } = new PlayerDto();
+
+        [Newtonsoft.Json.JsonProperty("servingPlayerId", Required = Newtonsoft.Json.Required.Always)]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid ServingPlayerId { get; set; }
 
         [Newtonsoft.Json.JsonProperty("tournamentName", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string TournamentName { get; set; }
@@ -1906,7 +1918,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
         public string PrizeMoneyCurrency { get; set; }
 
         [Newtonsoft.Json.JsonProperty("matches", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public System.Collections.Generic.ICollection<MatchDto> Matches { get; set; }
+        public System.Collections.Generic.ICollection<MatchDetailsDto> Matches { get; set; }
 
     }
 
