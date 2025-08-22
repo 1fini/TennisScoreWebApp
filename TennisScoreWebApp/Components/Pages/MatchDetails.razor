@@ -1,7 +1,9 @@
 @page "/match/{MatchId:guid}"
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@using TennisScoreWebApp.Services
 @inject NavigationManager Navigation
 @inject ITennisApiClient TennisApiClient
+@inject HubService HubService
 
 @rendermode InteractiveServer
 
@@ -82,6 +84,23 @@ else
             <button type="button" class="btn btn-secondary mt-3" @onclick="GoBack">Back to tournament page</button>
         </div>
     </div>
+        <!-- Add a point -->
+    <h4>Ajouter un point</h4>
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @foreach (var player in new[] { Match.Player1, Match.Player2 })
+        {
+            @foreach (PointType pt in Enum.GetValues(typeof(PointType)))
+            {
+                @if (pt != PointType.Unknown)
+                {
+                    <button class="btn @GetPointClass(pt)"
+                            @onclick="(() => AddPoint(player.Id, pt))">
+                        @player.LastName - @pt
+                    </button>
+                }
+            }
+        }
+    </div>
 }
 
 @code {
@@ -91,8 +110,60 @@ else
     protected override async Task OnInitializedAsync()
     {
         Match = await TennisApiClient.MatchesGETAsync(MatchId);
+
+        // Connexion au Hub
+        await HubService.StartAsync(matchId: MatchId);
+
+        // Abonnement aux updates
+        HubService.OnMatchUpdated += UpdateMatch;
     }
 
+    private void UpdateMatch(MatchDetailsDto updatedMatch)
+    {
+        InvokeAsync(() =>
+        {
+            if (updatedMatch.Id == Match?.Id)
+            {
+                Match.Player1.CurrentScore = updatedMatch.Player1.CurrentScore;
+                Match.Player2.CurrentScore = updatedMatch.Player2.CurrentScore;
+                Match.Sets = updatedMatch.Sets;
+                Match.ServingPlayerId = updatedMatch.ServingPlayerId;
+                StateHasChanged();
+            }
+        });
+    }
+
+    private string GetPointClass(PointType pt)
+        => pt switch
+        {
+            PointType.Ace => "btn-success",
+            PointType.DoubleFault => "btn-danger",
+            PointType.Fault => "btn-secondary",
+            PointType.Winner => "btn-primary",
+            PointType.UnforcedError => "btn-warning",
+            PointType.ForcedError => "btn-info",
+            PointType.Let => "btn-light",
+            PointType.TimeViolation => "btn-dark",
+            _ => "btn-secondary"
+        };
+
+    private async Task AddPoint(Guid player, PointType pointType)
+    {
+        if (Match == null) return;
+
+        var addPointRequest = new AddPointRequest
+        {
+            MatchId = Match.Id,
+            WinnerId = player,
+            PointType = pointType
+        };
+
+        // Appel API pour ajouter le point
+        await TennisApiClient.AddPointAsync(addPointRequest);
+
+        // Rafraîchir le match et diffuser via SignalR
+        var updatedMatch = await TennisApiClient.MatchesGETAsync(Match.Id);
+    }
     private void GoBack()
     {
         if (Match?.TournamentId != null)

@@ -1,6 +1,10 @@
 @page "/tournament/{TournamentId:guid}"
+@using Microsoft.AspNetCore.SignalR
+@using Microsoft.AspNetCore.SignalR.Client
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@using TennisScoreWebApp.Services
 @inject ITennisApiClient TennisApiClient
+@inject HubService HubService
 @inject NavigationManager Navigation
 
 @rendermode InteractiveServer
@@ -93,6 +97,31 @@ else
     protected override async Task OnInitializedAsync()
     {
         Tournament = await TennisApiClient.TournamentsGETAsync(TournamentId);
+
+        //SignalR connection setup
+        await HubService.StartAsync(tournamentId: TournamentId);
+        HubService.OnMatchUpdated += UpdateMatch;
+    }
+
+    private void UpdateMatch(MatchDetailsDto updatedMatch)
+    {
+        InvokeAsync(() =>
+        {
+            var existing = Tournament?.Matches.FirstOrDefault(m => m.Id == updatedMatch.Id);
+            if (existing != null)
+            {
+                existing.Player1.CurrentScore = updatedMatch.Player1.CurrentScore;
+                existing.Player2.CurrentScore = updatedMatch.Player2.CurrentScore;
+                existing.Sets = updatedMatch.Sets;
+                existing.ServingPlayerId = updatedMatch.ServingPlayerId;
+                StateHasChanged();
+            }
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        HubService.OnMatchUpdated -= UpdateMatch;
     }
 
     private void ToggleShowAll() => ShowAll = !ShowAll;
