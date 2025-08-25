@@ -1,0 +1,52 @@
+name: Build & Push WebApp Blazor Server
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request: 
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout du code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DH_USER }}
+          password: ${{ secrets.DH_TOKEN }}
+
+      # 3. Extraire infos Git
+      - name: Extract Git metadata
+        id: vars
+        run: |
+          echo "sha_short=${GITHUB_SHA::7}" >> $GITHUB_ENV
+          echo "ref_name=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
+      # 4. Build et push
+      - name: Build and Push Docker image
+        run: |
+          IMAGE_NAME=${{ secrets.DH_USER }}/tennisscore-webapp
+          
+          # Tag latest + commit
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ env.sha_short }} .
+          
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:${{ env.sha_short }}
+
+          # Si c’est une release → on tag aussi avec la version
+          if [ "${{ github.event_name }}" = "release" ]; then
+            docker tag $IMAGE_NAME:latest $IMAGE_NAME:${{ env.ref_name }}
+            docker push $IMAGE_NAME:${{ env.ref_name }}
+          fi
