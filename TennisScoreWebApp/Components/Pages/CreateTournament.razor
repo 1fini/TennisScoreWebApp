@@ -1,0 +1,170 @@
+@page "/tournaments/create"
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@inject ITennisApiClient TennisApiClient
+@inject NavigationManager Navigation
+
+<h1 class="text-2xl font-bold mb-4">Create New Tournament</h1>
+
+<EditForm Model="@newTournament" OnValidSubmit="@HandleCreateTournament">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <!-- Nom -->
+    <div class="mb-3">
+        <label class="block font-medium">Nom</label>
+        <InputText @bind-Value="newTournament.Name" class="border rounded p-1 w-full" />
+    </div>
+
+    <!-- Lieu -->
+    <div class="mb-3">
+        <label class="block font-medium">Lieu</label>
+        <InputText @bind-Value="newTournament.Location" class="border rounded p-1 w-full" />
+    </div>
+
+    <!-- Dates -->
+    <div class="mb-3">
+        <label class="block font-medium">Date de début</label>
+        <InputDate @bind-Value="newTournament.StartDate" class="border rounded p-1 w-full" />
+    </div>
+
+    <div class="mb-3">
+        <label class="block font-medium">Date de fin</label>
+        <InputDate @bind-Value="newTournament.EndDate" class="border rounded p-1 w-full" />
+    </div>
+
+    <!-- Description -->
+    <div class="mb-3">
+        <label class="block font-medium">Description</label>
+        <InputTextArea @bind-Value="newTournament.Description" class="border rounded p-1 w-full" />
+    </div>
+
+    <!-- Classement FFT -->
+    <div class="grid grid-cols-2 gap-4 mb-3">
+        <div>
+            <label class="block font-medium">Classement FFT minimum</label>
+            <InputText @bind-Value="newTournament.MinRankingFft" class="border rounded p-1 w-full" />
+        </div>
+        <div>
+            <label class="block font-medium">Classement FFT maximum</label>
+            <InputText @bind-Value="newTournament.MaxRankingFft" class="border rounded p-1 w-full" />
+        </div>
+    </div>
+
+    <!-- Âge -->
+    <div class="grid grid-cols-2 gap-4 mb-3">
+        <div>
+            <label class="block font-medium">Âge minimum</label>
+            <InputNumber @bind-Value="newTournament.MinAge" class="border rounded p-1 w-full" />
+        </div>
+        <div>
+            <label class="block font-medium">Âge maximum</label>
+            <InputNumber @bind-Value="newTournament.MaxAge" class="border rounded p-1 w-full" />
+        </div>
+    </div>
+
+    <!-- Catégories et types -->
+    <div class="mb-3">
+        <label class="block font-medium">Catégorie d'âge</label>
+        <InputSelect @bind-Value="newTournament.AgeCategory" class="border rounded p-1 w-full">
+            @foreach (var value in Enum.GetValues<AgeCategory>())
+            {
+                <option value="@value">@value</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="mb-3">
+        <label class="block font-medium">Type</label>
+        <InputSelect @bind-Value="newTournament.Type" class="border rounded p-1 w-full">
+            @foreach (var value in Enum.GetValues<TournamentType>())
+            {
+                <option value="@value">@value</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="mb-3">
+        <label class="block font-medium">Sous-type</label>
+        <InputSelect @bind-Value="newTournament.SubType" class="border rounded p-1 w-full">
+            @foreach (var value in Enum.GetValues<TournamentSubType>())
+            {
+                <option value="@value">@value</option>
+            }
+        </InputSelect>
+    </div>
+
+    <!-- Niveau de balle -->
+    <div class="mb-3">
+        <label class="block font-medium">Niveau de balle</label>
+        <InputSelect @bind-Value="newTournament.BallLevel" class="border rounded p-1 w-full">
+            @foreach (var value in Enum.GetValues<BallLevel>())
+            {
+                <option value="@value">@value</option>
+            }
+        </InputSelect>
+    </div>
+
+    <!-- Surface -->
+    <div class="mb-3">
+        <label class="block font-medium">Surface</label>
+        <InputSelect @bind-Value="newTournament.Surface" class="border rounded p-1 w-full">
+            @foreach (var value in Enum.GetValues<CourtSurface>())
+            {
+                <option value="@value">@value</option>
+            }
+        </InputSelect>
+    </div>
+
+    <!-- Conditions -->
+    <div class="mb-3">
+        <label class="block font-medium">Conditions de jeu</label>
+        <InputSelect @bind-Value="newTournament.Condition" class="border rounded p-1 w-full">
+            @foreach (var value in Enum.GetValues<PlayingCondition>())
+            {
+                <option value="@value">@value</option>
+            }
+        </InputSelect>
+    </div>
+
+    <!-- Prize Money -->
+    <div class="grid grid-cols-2 gap-4 mb-3">
+        <div>
+            <label class="block font-medium">Dotation (€)</label>
+            <InputNumber @bind-Value="newTournament.PrizeMoney" class="border rounded p-1 w-full" />
+        </div>
+        <div>
+            <label class="block font-medium">Devise</label>
+            <InputText @bind-Value="newTournament.PrizeMoneyCurrency" class="border rounded p-1 w-full" />
+        </div>
+    </div>
+
+    <!-- Format de match -->
+    <div class="mb-3">
+        <label class="block font-medium">Format de match</label>
+        <InputSelect @bind-Value="newTournament.MatchFormatId" class="border rounded p-1 w-full">
+            <option value="">-- Sélectionner --</option>
+            @foreach (var format in matchFormats)
+            {
+                <option value="@format.Id">@format.Name - @format.Application - @format.SetsToWin sets - @format.GamesPerSet games</option>
+            }
+        </InputSelect>
+    </div>
+
+    <Button type="submit" class="mt-2">Créer</Button>
+</EditForm>
+
+@code {
+    private CreateTournamentRequest newTournament = new();
+    private List<MatchFormat> matchFormats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        matchFormats = (await TennisApiClient.MatchFormatsAllAsync()).ToList();
+    }
+
+    private async Task HandleCreateTournament()
+    {
+        var created = await TennisApiClient.TournamentsPOSTAsync(newTournament);
+        Navigation.NavigateTo("/tournaments");
+    }
+}

@@ -24,6 +24,14 @@ else
             <p class="mb-1"><strong>Dates :</strong> @($"{Tournament.StartDate:dd MMM yyyy} – {Tournament.EndDate:dd MMM yyyy}")</p>
             <p class="mb-0"><strong>Matches :</strong> @Tournament.Matches.Count</p>
         </div>
+        <div class="mb-4">
+             <!-- link to create a new match -->
+            <NavLink href=@($"/matches/create/{Tournament.Id}") class="text-sm text-gray-500 hover:text-gray-700 hover:underline">
+            <p>
+                New Match
+            </p>
+            </NavLink>
+        </div>
     </div>
 
     <!-- Scores en direct -->

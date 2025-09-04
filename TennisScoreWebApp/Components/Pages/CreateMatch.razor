@@ -1,0 +1,57 @@
+@page "/matches/create/{TournamentId:guid}"
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@inject ITennisApiClient TennisApiClient
+@inject NavigationManager Navigation
+
+<h1 class="text-2xl font-bold mb-4">Create Match for @tournament?.Name</h1>
+
+@if (tournament is null)
+{
+    <p>Laoding...</p>
+}
+else
+{
+    <EditForm Model="@newMatch" OnValidSubmit="@HandleCreateMatch">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-2">
+            <label class="block">Player 1 First Name</label>
+            <InputText @bind-Value="newMatch.Player1LastName" class="border rounded p-1 w-full" />
+        </div>
+        <div class="mb-2">
+            <label class="block">Player 1 Last Name</label>
+            <InputText @bind-Value="newMatch.Player1LastName" class="border rounded p-1 w-full" />
+        </div>
+
+        <div class="mb-2">
+            <label class="block">Player 2 First Name</label>
+            <InputText @bind-Value="newMatch.Player2LastName" class="border rounded p-1 w-full" />
+        </div>
+        <div class="mb-2">
+            <label class="block">Player 2 Last Name</label>
+            <InputText @bind-Value="newMatch.Player1LastName" class="border rounded p-1 w-full" />
+        </div>
+
+        <Button type="submit" class="mt-2">Create Match</Button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid TournamentId { get; set; }
+
+    private TournamentDto? tournament;
+    private CreateMatchRequest newMatch = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        tournament = await TennisApiClient.TournamentsGETAsync(TournamentId);
+        newMatch.TournmentId = TournamentId;
+    }
+
+    private async Task HandleCreateMatch()
+    {
+        await TennisApiClient.MatchesPOSTAsync(newMatch);
+        Navigation.NavigateTo($"/tournaments/{TournamentId}");
+    }
+}
