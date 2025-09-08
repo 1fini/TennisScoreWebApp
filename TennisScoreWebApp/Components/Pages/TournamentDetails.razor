@@ -1,0 +1,136 @@
+@page "/tournament/{TournamentId:guid}"
+@using Microsoft.AspNetCore.SignalR
+@using Microsoft.AspNetCore.SignalR.Client
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@using TennisScoreWebApp.Services
+@inject ITennisApiClient TennisApiClient
+@inject HubService HubService
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+@if (Tournament == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <!-- Carte Infos Tournoi -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-3">
+            <h3 class="card-title mb-2">@Tournament.Name</h3>
+            <p class="mb-1"><strong>Lieu :</strong> @Tournament.Location</p>
+            <p class="mb-1"><strong>Surface :</strong> @Tournament.Surface</p>
+            <p class="mb-1"><strong>Dates :</strong> @($"{Tournament.StartDate:dd MMM yyyy} – {Tournament.EndDate:dd MMM yyyy}")</p>
+            <p class="mb-0"><strong>Matches :</strong> @Tournament.Matches.Count</p>
+        </div>
+        <div class="mb-4">
+             <!-- link to create a new match -->
+            <NavLink href=@($"/matches/create/{Tournament.Id}") class="text-sm text-gray-500 hover:text-gray-700 hover:underline">
+            <p>
+                New Match
+            </p>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- Scores en direct -->
+    <h5 class="mb-3">Scores en direct</h5>
+
+    <div class="row g-2">
+        @foreach (var match in Tournament.Matches.Take(ShowAll ? Tournament.Matches.Count : 6))
+        {
+            <div class="col-12 col-md-6 col-lg-4">
+                <NavLink class="text-decoration-none text-dark" href=@($"/match/{match.Id}")>
+                    <div class="card shadow-sm">
+                        <div class="card-body p-2">
+                            <table class="table table-sm table-borderless text-center mb-0 align-middle">
+                                <tbody>
+                                    <tr>
+                                        <td class="text-start fw-bold">
+                                            @match.Player1.LastName
+                                            @if (match.ServingPlayerId == match.Player1.Id)
+                                            {
+                                                <span title="Au service"> 🎾</span>
+                                            }
+                                        </td>
+                                        @foreach (var set in match.Sets)
+                                        {
+                                            <td>@set.Player1Games</td>
+                                        }
+                                        <td class="fw-bold text-primary">
+                                            @match.Player1.CurrentScore
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-start fw-bold">
+                                            @match.Player2.LastName
+                                            @if (match.ServingPlayerId == match.Player2.Id)
+                                            {
+                                                <span title="Au service"> 🎾</span>
+                                            }
+                                        </td>
+                                        @foreach (var set in match.Sets)
+                                        {
+                                            <td>@set.Player2Games</td>
+                                        }
+                                        <td class="fw-bold text-primary">
+                                            @match.Player2.CurrentScore
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </NavLink>
+            </div>
+        }
+    </div>
+
+    @if (Tournament.Matches.Count > 6)
+    {
+        <div class="text-center mt-3">
+            <button class="btn btn-outline-primary btn-sm" @onclick="ToggleShowAll">
+                @(ShowAll ? "Voir moins" : "Voir plus")
+            </button>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public Guid TournamentId { get; set; }
+    private TournamentDto? Tournament { get; set; }
+    private bool ShowAll = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Tournament = await TennisApiClient.TournamentsGETAsync(TournamentId);
+
+        //SignalR connection setup
+        await HubService.StartAsync(tournamentId: TournamentId);
+        HubService.OnMatchUpdated += UpdateMatch;
+    }
+
+    private void UpdateMatch(MatchDetailsDto updatedMatch)
+    {
+        InvokeAsync(() =>
+        {
+            var existing = Tournament?.Matches.FirstOrDefault(m => m.Id == updatedMatch.Id);
+            if (existing != null)
+            {
+                existing.Player1.CurrentScore = updatedMatch.Player1.CurrentScore;
+                existing.Player2.CurrentScore = updatedMatch.Player2.CurrentScore;
+                existing.Sets = updatedMatch.Sets;
+                existing.ServingPlayerId = updatedMatch.ServingPlayerId;
+                StateHasChanged();
+            }
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        HubService.OnMatchUpdated -= UpdateMatch;
+    }
+
+    private void ToggleShowAll() => ShowAll = !ShowAll;
+}

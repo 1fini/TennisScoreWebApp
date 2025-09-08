@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+    "profiles": {
+      "http": {
+        "commandName": "Project",
+        "dotnetRunMessages": true,
+        "launchBrowser": true,
+        "applicationUrl": "http://localhost:5202",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "SCOREHUB_URL": "http://localhost:5227/scoreHub",
+          "SCORE_API_URL": "5432"
+        }
+      },
+      "https": {
+        "commandName": "Project",
+        "dotnetRunMessages": true,
+        "launchBrowser": true,
+        "applicationUrl": "https://localhost:7083;http://localhost:5202",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "SCOREHUB_URL": "http://localhost:5227/scoreHub",
+          "SCORE_API_URL": "5432"
+        }
+      }
+    }
+  }
