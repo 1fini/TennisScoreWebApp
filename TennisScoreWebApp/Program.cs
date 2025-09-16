@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using TennisScoreWebApp.Components;
 using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi;
 using TennisScoreWebApp.Services;
@@ -6,11 +5,11 @@ using TennisScoreWebApp.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRazorComponents()
+builder.Services
+    .AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
-
 
 // Injection du HttpClient pour TennisApiClient
 builder.Services.AddHttpClient<ITennisApiClient, TennisApiClient>(client =>

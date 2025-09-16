@@ -277,7 +277,33 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerLightDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerLightDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerLightDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -300,7 +326,91 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerLightDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerLightDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerLightDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Players/search": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerLightDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerLightDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerLightDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -506,31 +616,19 @@
       },
       "CreateMatchRequest": {
         "required": [
-          "bestOfSets",
-          "player1FirstName",
-          "player1LastName",
-          "player2FirstName",
-          "player2LastName",
-          "servingPlayerFirstName",
-          "servingPlayerLastName"
+          "player1Id",
+          "player2Id",
+          "servingPlayer"
         ],
         "type": "object",
         "properties": {
-          "player1FirstName": {
-            "minLength": 1,
-            "type": "string"
+          "player1Id": {
+            "type": "string",
+            "format": "uuid"
           },
-          "player1LastName": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "player2FirstName": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "player2LastName": {
-            "minLength": 1,
-            "type": "string"
+          "player2Id": {
+            "type": "string",
+            "format": "uuid"
           },
           "bestOfSets": {
             "maximum": 5,
@@ -538,27 +636,18 @@
             "type": "integer",
             "format": "int32"
           },
-          "servingPlayerLastName": {
-            "minLength": 1,
-            "type": "string"
+          "servingPlayer": {
+            "type": "string",
+            "format": "uuid"
           },
-          "servingPlayerFirstName": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "tournmentId": {
+          "tournamentId": {
             "type": "string",
             "format": "uuid",
             "nullable": true
           },
-          "tournamentName": {
+          "matchDate": {
             "type": "string",
-            "nullable": true
-          },
-          "tournamentStartDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -925,6 +1014,33 @@
           },
           "currentScore": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PlayerLightDto": {
+        "required": [
+          "firstName",
+          "lastName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "age": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },
