@@ -1,5 +1,6 @@
 @page "/matches/create/{TournamentId:guid}"
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@using TennisScoreWebApp.Components
 @inject ITennisApiClient TennisApiClient
 @inject NavigationManager Navigation
 
@@ -7,33 +8,48 @@
 
 @if (tournament is null)
 {
-    <p>Laoding...</p>
+    <p>Loading...</p>
 }
 else
 {
-    <EditForm Model="@newMatch" OnValidSubmit="@HandleCreateMatch">
+    <EditForm EditContext="editContext" OnValidSubmit="HandleValidSubmit" FormName="CreateMatchForm">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
-        <div class="mb-2">
-            <label class="block">Player 1 First Name</label>
-            <InputText @bind-Value="newMatch.Player1LastName" class="border rounded p-1 w-full" />
-        </div>
-        <div class="mb-2">
-            <label class="block">Player 1 Last Name</label>
-            <InputText @bind-Value="newMatch.Player1LastName" class="border rounded p-1 w-full" />
+        <div class="mb-3">
+            <label class="form-label">Tournament</label>
+            <input class="form-control" value="@tournament.Name" disabled />
         </div>
 
-        <div class="mb-2">
-            <label class="block">Player 2 First Name</label>
-            <InputText @bind-Value="newMatch.Player2LastName" class="border rounded p-1 w-full" />
-        </div>
-        <div class="mb-2">
-            <label class="block">Player 2 Last Name</label>
-            <InputText @bind-Value="newMatch.Player1LastName" class="border rounded p-1 w-full" />
+        <!-- Match Date -->
+        <div class="mb-3">
+            <label class="form-label">Match Date</label>
+            <input type="date" class="form-control" @bind="matchDate" />
         </div>
 
-        <Button type="submit" class="mt-2">Create Match</Button>
+        <!-- Match Time -->
+        <div class="mb-3">
+            <label class="form-label">Match Time</label>
+            <input type="timespan" class="form-control" @bind="matchTime" />
+        </div>
+
+        <PlayerAutocomplete Label="Player 1"
+                            Placeholder="Search player 1..."
+                            OnPlayerSelected="OnPlayer1Selected" />
+
+        <PlayerAutocomplete Label="Player 2"
+                            Placeholder="Search player 2..."
+                            OnPlayerSelected="OnPlayer2Selected" />
+
+        <ServingPlayerSelector Player1="player1Selected"
+                               Player2="player2Selected"
+                               SelectedServer="@match.ServingPlayer"
+                               SelectedServerChanged="OnServingChanged" />
+
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary me-2">Create Match</button>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
     </EditForm>
 }
 
@@ -41,17 +57,54 @@ else
     [Parameter] public Guid TournamentId { get; set; }
 
     private TournamentDto? tournament;
-    private CreateMatchRequest newMatch = new();
+    private CreateMatchRequest match = new();
+    private EditContext? editContext;
+
+    private PlayerLightDto? player1Selected;
+    private PlayerLightDto? player2Selected;
+    private DateTime matchDate = DateTime.Today;
+    private TimeSpan matchTime = DateTime.Now.TimeOfDay;
 
     protected override async Task OnInitializedAsync()
     {
         tournament = await TennisApiClient.TournamentsGETAsync(TournamentId);
-        newMatch.TournmentId = TournamentId;
+
+        match.TournamentId = TournamentId;
+        matchDate = DateTime.Today;
+        matchTime = DateTime.Now.TimeOfDay;
+
+        editContext = new EditContext(match);
     }
 
-    private async Task HandleCreateMatch()
+    private async Task OnPlayer1Selected(PlayerLightDto p)
     {
-        await TennisApiClient.MatchesPOSTAsync(newMatch);
+        player1Selected = p;
+        match.Player1Id = p.Id;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnPlayer2Selected(PlayerLightDto p)
+    {
+        player2Selected = p;
+        match.Player2Id = p.Id;
+        await Task.CompletedTask;
+    }
+
+    private Task OnServingChanged(Guid serverId)
+    {
+        match.ServingPlayer = serverId;
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        match.MatchDate = matchDate.Date + matchTime;
+        await TennisApiClient.MatchesPOSTAsync(match);
+        Navigation.NavigateTo($"/tournaments/{TournamentId}");
+    }
+
+    private void Cancel()
+    {
         Navigation.NavigateTo($"/tournaments/{TournamentId}");
     }
 }

@@ -167,7 +167,7 @@ else
     private void GoBack()
     {
         if (Match?.TournamentId != null)
-            Navigation.NavigateTo($"/tournament/{Match.TournamentId}");
+            Navigation.NavigateTo($"/tournaments/{Match.TournamentId}");
         else
             Navigation.NavigateTo("/tournaments");
     }

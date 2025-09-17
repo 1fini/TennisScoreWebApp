@@ -1,0 +1,82 @@
+@namespace TennisScoreWebApp.Components
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@inject ITennisApiClient TennisApiClient
+
+<div class="mb-3 position-relative" style="min-height:2.5rem;">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="form-label">@Label</label>
+    }
+
+    <input
+        class="form-control"
+        placeholder="@Placeholder"
+        value="@displayText"
+        @oninput="OnInputChanged" />
+
+    @if (suggestions?.Any() == true)
+    {
+        <ul class="list-group position-absolute w-100 z-50" style="max-height:220px; overflow-y:auto;">
+            @foreach (var p in suggestions)
+            {
+                <li class="list-group-item list-group-item-action" style="cursor:pointer;"
+                    @onclick="() => SelectPlayer(p)">
+                    @p.FirstName @p.LastName
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Placeholder { get; set; } = "Type to search...";
+    [Parameter] public EventCallback<PlayerLightDto> OnPlayerSelected { get; set; }
+
+    private string searchText = string.Empty;
+    private string displayText = string.Empty;
+    private List<PlayerLightDto> suggestions = new();
+
+    private CancellationTokenSource? cts;
+
+    private async Task OnInputChanged(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        displayText = searchText;
+
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
+
+        if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
+        {
+            suggestions.Clear();
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(200, cts.Token); // debounce
+            var results = await TennisApiClient.SearchAsync(searchText);
+            suggestions = results?.ToList() ?? new List<PlayerLightDto>();
+        }
+        catch (OperationCanceledException) { }
+        catch
+        {
+            suggestions = new List<PlayerLightDto>();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SelectPlayer(PlayerLightDto p)
+    {
+        displayText = $"{p.FirstName} {p.LastName}";
+        searchText = displayText;
+        suggestions.Clear();
+        StateHasChanged();
+
+        if (OnPlayerSelected.HasDelegate)
+            await OnPlayerSelected.InvokeAsync(p);
+    }
+}

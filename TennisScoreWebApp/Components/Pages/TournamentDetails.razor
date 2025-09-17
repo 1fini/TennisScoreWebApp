@@ -1,4 +1,4 @@
-@page "/tournament/{TournamentId:guid}"
+@page "/tournaments/{TournamentId:guid}"
 @using Microsoft.AspNetCore.SignalR
 @using Microsoft.AspNetCore.SignalR.Client
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
@@ -91,7 +91,7 @@ else
     {
         <div class="text-center mt-3">
             <button class="btn btn-outline-primary btn-sm" @onclick="ToggleShowAll">
-                @(ShowAll ? "Voir moins" : "Voir plus")
+                @(ShowAll ? "See less" : "See more")
             </button>
         </div>
     }
