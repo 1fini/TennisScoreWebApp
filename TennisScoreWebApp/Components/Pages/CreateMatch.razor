@@ -98,6 +98,10 @@ else
 
     private async Task HandleValidSubmit()
     {
+        if (tournament?.MatchFormat != null)
+        {
+            match.BestOfSets = tournament.MatchFormat.SetsToWin;
+        }
         match.MatchDate = matchDate.Date + matchTime;
         await TennisApiClient.MatchesPOSTAsync(match);
         Navigation.NavigateTo($"/tournaments/{TournamentId}");

@@ -1,0 +1,72 @@
+@page "/players/create"
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@inject ITennisApiClient TennisApiClient
+@inject NavigationManager Navigation
+
+<h1 class="text-2xl font-bold mb-4">Create Player</h1>
+
+<EditForm Model="player" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <!-- First Name -->
+    <div class="mb-3">
+        <label class="form-label">First Name</label>
+        <InputText class="form-control" @bind-Value="player.FirstName" />
+        <ValidationMessage For="@(() => player.FirstName)" />
+    </div>
+
+    <!-- Last Name -->
+    <div class="mb-3">
+        <label class="form-label">Last Name</label>
+        <InputText class="form-control" @bind-Value="player.LastName" />
+        <ValidationMessage For="@(() => player.LastName)" />
+    </div>
+
+    <!-- Nationality -->
+    <div class="mb-3">
+        <label class="form-label">Nationality</label>
+        <InputText class="form-control" @bind-Value="player.Nationality" />
+        <ValidationMessage For="@(() => player.Nationality)" />
+    </div>
+
+    <!-- Birthdate -->
+    <div class="mb-3">
+        <label class="form-label">Birthdate</label>
+        <InputDate class="form-control" @bind-Value="player.Birthdate" />
+        <ValidationMessage For="@(() => player.Birthdate)" />
+    </div>
+
+    <!-- FFT Ranking -->
+    <div class="mb-3">
+        <label class="form-label">FFT Ranking</label>
+        <InputSelect class="form-select" @bind-Value="player.FftRanking">
+            @foreach (var ranking in Enum.GetValues<FftRanking>())
+            {
+                <option value="@ranking">@ranking</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="@(() => player.FftRanking)" />
+    </div>
+
+    <!-- Buttons -->
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary me-2">Create Player</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+    </div>
+</EditForm>
+
+@code {
+    private CreatePlayerRequest player = new();
+
+    private async Task HandleValidSubmit()
+    {
+        await TennisApiClient.PlayersPOSTAsync(player);
+        Navigation.NavigateTo("/players"); // Redirect to players list after creation
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/players");
+    }
+}

@@ -1524,8 +1524,8 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
         [Newtonsoft.Json.JsonProperty("nationality", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Nationality { get; set; }
 
-        [Newtonsoft.Json.JsonProperty("age", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public int? Age { get; set; }
+        [Newtonsoft.Json.JsonProperty("birthdate", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public System.DateTimeOffset? Birthdate { get; set; }
 
         [Newtonsoft.Json.JsonProperty("fftRanking", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
