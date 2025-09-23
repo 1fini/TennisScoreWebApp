@@ -43,7 +43,7 @@
         <InputSelect class="form-select" @bind-Value="player.FftRanking">
             @foreach (var ranking in Enum.GetValues<FftRanking>())
             {
-                <option value="@ranking">@ranking</option>
+                <option value="@ranking">@(GetFftRankingString(@ranking))</option>
             }
         </InputSelect>
         <ValidationMessage For="@(() => player.FftRanking)" />
@@ -58,15 +58,50 @@
 
 @code {
     private CreatePlayerRequest player = new();
+    private List<string> rankings = new();
 
     private async Task HandleValidSubmit()
     {
         await TennisApiClient.PlayersPOSTAsync(player);
-        Navigation.NavigateTo("/players"); // Redirect to players list after creation
+        Navigation.NavigateTo("/tournaments");
+    }
+
+    private string GetFftRankingString(FftRanking ranking)
+    {
+        return ranking switch
+        {
+            FftRanking.NC => "NC",
+            FftRanking.Quarante => "40",
+            FftRanking.TrenteCinq => "30/5",
+            FftRanking.TrenteQuatre => "30/4",
+            FftRanking.TrenteTrois => "30/3",
+            FftRanking.TrenteDeux => "30/2",
+            FftRanking.TrenteUn => "30/1",
+            FftRanking.Trente => "30",
+            FftRanking.QuinzeCinq => "15/5",
+            FftRanking.QuinzeQuatre => "15/4",
+            FftRanking.QuinzeTrois => "15/3",
+            FftRanking.QuinzeDeux => "15/2",
+            FftRanking.QuinzeUn => "15/1",
+            FftRanking.Quinze => "15",
+            FftRanking.CinqSix => "5/6",
+            FftRanking.QuatreSix => "4/6",
+            FftRanking.TroisSix => "3/6",
+            FftRanking.DeuxSix => "2/6",
+            FftRanking.UnSix => "1/6",
+            FftRanking.Zero => "0",
+            FftRanking.MoinsDeuxSix => "-2/6",
+            FftRanking.MoinsQuatreSix => "-4/6",
+            FftRanking.MoinsQuinze => "-15",
+            FftRanking.Top60DamesTop100Messieurs => "Top 60 Women / Top 100 Men",
+            FftRanking.Top40DamesTop60Messieurs => "Top 40 Women / Top 60 Men",
+            FftRanking.Top20DamesTop30Messieurs => "Top 20 Women / Top 30 Men",
+            _ => "",
+        };
     }
 
     private void Cancel()
     {
-        Navigation.NavigateTo("/players");
+        Navigation.NavigateTo("/tournaments");
     }
 }
