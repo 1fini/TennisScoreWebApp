@@ -1,5 +1,6 @@
 @page "/matches/create/{TournamentId:guid}"
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@using TennisScoreWebApp.Components
 @inject ITennisApiClient TennisApiClient
 @inject NavigationManager Navigation
 
@@ -15,61 +16,36 @@ else
         <DataAnnotationsValidator />
         <ValidationSummary />
 
-        <!-- Tournament display -->
         <div class="mb-3">
             <label class="form-label">Tournament</label>
             <input class="form-control" value="@tournament.Name" disabled />
         </div>
 
-        <!-- Player 1 -->
+        <!-- Match Date -->
         <div class="mb-3">
-            <label class="form-label">Player 1</label>
-            <select class="form-select" @onchange="OnPlayer1Changed">
-                <option value="">-- Select player 1 --</option>
-                @foreach (var p in players)
-                {
-                    <option value="@p.Id.ToString()" selected="@(match.Player1Id == p.Id)">
-                        @p.LastName
-                    </option>
-                }
-            </select>
-            <ValidationMessage For="@(() => match.Player1Id)" />
+            <label class="form-label">Match Date</label>
+            <input type="date" class="form-control" @bind="matchDate" />
         </div>
 
-        <!-- Player 2 -->
+        <!-- Match Time -->
         <div class="mb-3">
-            <label class="form-label">Player 2</label>
-            <select class="form-select" @onchange="OnPlayer2Changed">
-                <option value="">-- Select player 2 --</option>
-                @foreach (var p in players)
-                {
-                    <option value="@p.Id.ToString()" selected="@(match.Player2Id == p.Id)">
-                        @p.LastName
-                    </option>
-                }
-            </select>
-            <ValidationMessage For="@(() => match.Player2Id)" />
+            <label class="form-label">Match Time</label>
+            <input type="timespan" class="form-control" @bind="matchTime" />
         </div>
 
-        <!-- Serving player -->
-        <div class="mb-3">
-            <label class="form-label">Serving Player</label>
-            <select class="form-select" @onchange="OnServingChanged" disabled="@(!isServingEnabled)">
-                <option value="">-- Select server --</option>
-                @if (player1Selected != null)
-                {
-                    <option value="@player1Selected.Id">@player1Selected.LastName</option>
-                }
-                @if (player2Selected != null)
-                {
-                    <option value="@player2Selected.Id">@player2Selected.LastName</option>
-                }
-            </select>
-            <ValidationMessage For="@(() => match.ServingPlayer)" />
-            <div class="form-text">Must be one of the previous selected players.</div>
-        </div>
+        <PlayerAutocomplete Label="Player 1"
+                            Placeholder="Search player 1..."
+                            OnPlayerSelected="OnPlayer1Selected" />
 
-        <!-- Buttons -->
+        <PlayerAutocomplete Label="Player 2"
+                            Placeholder="Search player 2..."
+                            OnPlayerSelected="OnPlayer2Selected" />
+
+        <ServingPlayerSelector Player1="player1Selected"
+                               Player2="player2Selected"
+                               SelectedServer="@match.ServingPlayer"
+                               SelectedServerChanged="OnServingChanged" />
+
         <div class="mb-3">
             <button type="submit" class="btn btn-primary me-2">Create Match</button>
             <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
@@ -81,87 +57,53 @@ else
     [Parameter] public Guid TournamentId { get; set; }
 
     private TournamentDto? tournament;
-    private List<PlayerLightDto> players = new();
     private CreateMatchRequest match = new();
     private EditContext? editContext;
-    private ValidationMessageStore? messageStore;
 
-    private PlayerLightDto? player1Selected => players.FirstOrDefault(p => p.Id == match.Player1Id);
-    private PlayerLightDto? player2Selected => players.FirstOrDefault(p => p.Id == match.Player2Id);
-    private bool isServingEnabled => match.Player1Id != Guid.Empty && match.Player2Id != Guid.Empty;
+    private PlayerLightDto? player1Selected;
+    private PlayerLightDto? player2Selected;
+    private DateTime matchDate = DateTime.Today;
+    private TimeSpan matchTime = DateTime.Now.TimeOfDay;
 
     protected override async Task OnInitializedAsync()
     {
         tournament = await TennisApiClient.TournamentsGETAsync(TournamentId);
-        players = (await TennisApiClient.PlayersAllAsync()).ToList();
+
         match.TournamentId = TournamentId;
+        matchDate = DateTime.Today;
+        matchTime = DateTime.Now.TimeOfDay;
 
         editContext = new EditContext(match);
-        messageStore = new ValidationMessageStore(editContext);
-        editContext.OnFieldChanged += (sender, args) =>
-        {
-            messageStore.Clear();
-            editContext.NotifyValidationStateChanged();
-        };
     }
 
-    private void OnPlayer1Changed(ChangeEventArgs e)
+    private async Task OnPlayer1Selected(PlayerLightDto p)
     {
-        if (Guid.TryParse(e.Value?.ToString(), out var id))
-            match.Player1Id = id;
-        else
-            match.Player1Id = Guid.Empty;
-
-        editContext?.NotifyFieldChanged(new FieldIdentifier(match, nameof(match.Player1Id)));
+        player1Selected = p;
+        match.Player1Id = p.Id;
+        await Task.CompletedTask;
     }
 
-    private void OnPlayer2Changed(ChangeEventArgs e)
+    private async Task OnPlayer2Selected(PlayerLightDto p)
     {
-        if (Guid.TryParse(e.Value?.ToString(), out var id))
-            match.Player2Id = id;
-        else
-            match.Player2Id = Guid.Empty;
-
-        editContext?.NotifyFieldChanged(new FieldIdentifier(match, nameof(match.Player2Id)));
+        player2Selected = p;
+        match.Player2Id = p.Id;
+        await Task.CompletedTask;
     }
 
-    private void OnServingChanged(ChangeEventArgs e)
+    private Task OnServingChanged(Guid serverId)
     {
-        if (Guid.TryParse(e.Value?.ToString(), out var id))
-            match.ServingPlayer = id;
-        else
-            match.ServingPlayer = Guid.Empty;
-
-        editContext?.NotifyFieldChanged(new FieldIdentifier(match, nameof(match.ServingPlayer)));
+        match.ServingPlayer = serverId;
+        return Task.CompletedTask;
     }
 
     private async Task HandleValidSubmit()
     {
-        if (editContext == null || messageStore == null) return;
-
-        messageStore.Clear();
-
-        if (match.Player1Id == match.Player2Id || match.Player1Id == Guid.Empty || match.Player2Id == Guid.Empty)
+        if (tournament?.MatchFormat != null)
         {
-            if (match.Player1Id == Guid.Empty)
-                messageStore.Add(editContext.Field(nameof(match.Player1Id)), "Player 1 is required.");
-            if (match.Player2Id == Guid.Empty)
-                messageStore.Add(editContext.Field(nameof(match.Player2Id)), "Player 2 is required.");
-            if (match.Player1Id == match.Player2Id && match.Player1Id != Guid.Empty)
-                messageStore.Add(editContext.Field(nameof(match.Player2Id)), "Player 2 must be different from Player 1.");
+            match.BestOfSets = tournament.MatchFormat.SetsToWin;
         }
-
-        if (match.ServingPlayer == Guid.Empty ||
-            (match.ServingPlayer != match.Player1Id && match.ServingPlayer != match.Player2Id))
-        {
-            messageStore.Add(editContext.Field(nameof(match.ServingPlayer)), "Serving player must be either Player 1 or Player 2.");
-        }
-
-        editContext.NotifyValidationStateChanged();
-        if (editContext.GetValidationMessages().Any()) return;
-
+        match.MatchDate = matchDate.Date + matchTime;
         await TennisApiClient.MatchesPOSTAsync(match);
-
         Navigation.NavigateTo($"/tournaments/{TournamentId}");
     }
 

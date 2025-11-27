@@ -1,0 +1,44 @@
+@namespace TennisScoreWebApp.Components
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+
+<div class="mb-3">
+    <label class="form-label">Serving Player</label>
+    <select class="form-select" @onchange="OnChange" disabled="@(!IsEnabled)">
+        <option value="">-- Select server --</option>
+
+        @if (Player1 != null)
+        {
+            <option value="@Player1.Id.ToString()" selected="@(SelectedServer == Player1.Id)">
+                @Player1.FirstName @Player1.LastName
+            </option>
+        }
+
+        @if (Player2 != null)
+        {
+            <option value="@Player2.Id.ToString()" selected="@(SelectedServer == Player2.Id)">
+                @Player2.FirstName @Player2.LastName
+            </option>
+        }
+    </select>
+</div>
+
+@code {
+    [Parameter] public PlayerLightDto? Player1 { get; set; }
+    [Parameter] public PlayerLightDto? Player2 { get; set; }
+
+    [Parameter] public Guid SelectedServer { get; set; }
+    [Parameter] public EventCallback<Guid> SelectedServerChanged { get; set; }
+
+    private bool IsEnabled => Player1 != null && Player2 != null;
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var id))
+            SelectedServer = id;
+        else
+            SelectedServer = Guid.Empty;
+
+        if (SelectedServerChanged.HasDelegate)
+            await SelectedServerChanged.InvokeAsync(SelectedServer);
+    }
+}
