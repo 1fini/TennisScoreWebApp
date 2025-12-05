@@ -17,7 +17,7 @@
 
 @if (tournaments == null)
 {
-    <p><em>Chargement...</em></p>
+    <p><em>Loading...</em></p>
 }
 else if (!tournaments.Any())
 {
@@ -42,7 +42,7 @@ else
                             </small>
                         </p>
                         <a href="@($"/tournaments/{t.Id}")" class="btn btn-primary btn-sm">
-                            Voir détails
+                            See more
                         </a>
                     </div>
                 </div>

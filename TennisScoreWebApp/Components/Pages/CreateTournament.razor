@@ -164,7 +164,7 @@
 
     private async Task HandleCreateTournament()
     {
-        var created = await TennisApiClient.TournamentsPOSTAsync(newTournament);
+        await TennisApiClient.TournamentsPOSTAsync(newTournament);
         Navigation.NavigateTo("/tournaments");
     }
 }
