@@ -502,17 +502,20 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/TournamentDto"
+                  "type": "string",
+                  "format": "uuid"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TournamentDto"
+                  "type": "string",
+                  "format": "uuid"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TournamentDto"
+                  "type": "string",
+                  "format": "uuid"
                 }
               }
             }
@@ -609,6 +612,44 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Tournaments"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "boolean"
                 }
               }
             }
