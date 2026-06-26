@@ -3,6 +3,7 @@
 
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 @inject ITennisApiClient TennisApiClient
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 
@@ -35,7 +36,12 @@ else
         @foreach (var t in VisibleTournaments)
         {
             <div class="col-md-4 mb-4">
-                <div class="card shadow-sm h-100">
+                <div class="card shadow-sm h-100"
+                     role="link"
+                     tabindex="0"
+                     style="cursor: pointer;"
+                     @onclick="() => GoToTournament(t.Id)"
+                     @onkeydown="args => HandleCardKeyDown(args, t.Id)">
                     <div class="card-body">
                         <h5 class="card-title">@t.Name</h5>
                         <h6 class="card-subtitle mb-2 text-muted">@t.Location</h6>
@@ -47,12 +53,10 @@ else
                                 @t.StartDate.ToString("dd MMM yyyy") - @t.EndDate.ToString("dd MMM yyyy")
                             </small>
                         </p>
-                        <a href="@($"/tournaments/{t.Id}")" class="btn btn-primary btn-sm">
-                            See more
-                        </a>
                         <button type="button"
                                 class="btn btn-outline-danger btn-sm ms-2"
                                 disabled="@isDeleting"
+                                @onclick:stopPropagation="true"
                                 @onclick="() => DeleteTournament(t)">
                             Delete
                         </button>
@@ -91,6 +95,19 @@ else
     {
         var today = DateTime.Today;
         return tournament.StartDate.Date <= today && tournament.EndDate.Date >= today;
+    }
+
+    private void GoToTournament(Guid tournamentId)
+    {
+        Navigation.NavigateTo($"/tournaments/{tournamentId}");
+    }
+
+    private void HandleCardKeyDown(KeyboardEventArgs args, Guid tournamentId)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            GoToTournament(tournamentId);
+        }
     }
 
     private async Task DeleteTournament(TournamentDto tournament)
