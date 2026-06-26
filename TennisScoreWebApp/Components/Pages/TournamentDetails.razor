@@ -18,21 +18,50 @@ else
     <!-- Carte Infos Tournoi -->
     <div class="card shadow-sm mb-4">
         <div class="card-body p-3">
-            <h3 class="card-title mb-2">@Tournament.Name</h3>
-            <p class="mb-1"><strong>Lieu :</strong> @Tournament.Location</p>
-            <p class="mb-1"><strong>Surface :</strong> @Tournament.Surface</p>
-            <p class="mb-1"><strong>Dates :</strong> @($"{Tournament.StartDate:dd MMM yyyy} – {Tournament.EndDate:dd MMM yyyy}")</p>
-            <p class="mb-0"><strong>Matches :</strong> @Matches.Count</p>
-        </div>
-        <div class="mb-4">
-             <!-- link to create a new match -->
-            <NavLink href=@($"/matches/create/{Tournament.Id}") class="text-sm text-gray-500 hover:text-gray-700 hover:underline">
-            <p>
-                New Match
-            </p>
-            </NavLink>
+            <div class="d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3">
+                <div>
+                    <h3 class="card-title mb-2">@Tournament.Name</h3>
+                    <p class="mb-1"><strong>Lieu :</strong> @Tournament.Location</p>
+                    <p class="mb-1"><strong>Surface :</strong> @Tournament.Surface</p>
+                    <p class="mb-1"><strong>Dates :</strong> @($"{Tournament.StartDate:dd MMM yyyy} – {Tournament.EndDate:dd MMM yyyy}")</p>
+                    <p class="mb-0"><strong>Matches :</strong> @Matches.Count</p>
+                </div>
+                <NavLink href=@($"/matches/create/{Tournament.Id}") class="btn btn-primary btn-sm">
+                    New Match
+                </NavLink>
+            </div>
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+
+    <style>
+        .match-card {
+            cursor: pointer;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .match-card:hover,
+        .match-card:focus {
+            border-color: rgba(13, 110, 253, .35);
+            box-shadow: 0 .125rem .375rem rgba(0, 0, 0, .12);
+            outline: none;
+        }
+
+        .match-delete-button {
+            opacity: .35;
+            transform: scale(.72);
+            transition: opacity .15s ease;
+        }
+
+        .match-card:hover .match-delete-button,
+        .match-delete-button:focus {
+            opacity: .65;
+        }
+    </style>
 
     <h5 class="mb-3">Tournament draw</h5>
 
@@ -45,8 +74,19 @@ else
         <div class="list-group mb-4">
             @foreach (var match in Matches.OrderBy(m => m.StartTime))
             {
-                <NavLink class="list-group-item list-group-item-action" href=@($"/match/{match.Id}")>
-                    <div class="d-flex w-100 justify-content-between gap-3">
+                <div class="list-group-item list-group-item-action match-card position-relative pe-5"
+                     role="link"
+                     tabindex="0"
+                     @onclick="() => GoToMatch(match.Id)"
+                     @onkeydown="args => HandleMatchCardKeyDown(args, match.Id)">
+                    <button type="button"
+                            class="btn-close match-delete-button position-absolute top-0 end-0 m-2"
+                            aria-label="Delete match"
+                            disabled="@(deletingMatchId == match.Id)"
+                            @onclick:stopPropagation="true"
+                            @onclick="() => DeleteMatch(match)">
+                    </button>
+                    <div class="d-flex w-100 justify-content-between gap-3 pe-2">
                         <strong>@GetPlayerName(match.Player1) vs @GetPlayerName(match.Player2)</strong>
                         <small>@($"{match.StartTime:dd MMM yyyy HH:mm}")</small>
                     </div>
@@ -55,7 +95,7 @@ else
                             ? "Scheduled"
                             : $"Winner: {match.WinnerFirstName} {match.WinnerLastName}")
                     </small>
-                </NavLink>
+                </div>
             }
         </div>
     }
@@ -67,48 +107,57 @@ else
         @foreach (var match in Matches.Take(ShowAll ? Matches.Count : 6))
         {
             <div class="col-12 col-md-6 col-lg-4">
-                <NavLink class="text-decoration-none text-dark" href=@($"/match/{match.Id}")>
-                    <div class="card shadow-sm">
-                        <div class="card-body p-2">
-                            <table class="table table-sm table-borderless text-center mb-0 align-middle">
-                                <tbody>
-                                    <tr>
-                                        <td class="text-start fw-bold">
-                                            @match.Player1.LastName
-                                            @if (match.ServingPlayerId == match.Player1.Id)
-                                            {
-                                                <span title="Au service"> 🎾</span>
-                                            }
-                                        </td>
-                                        @foreach (var set in match.Sets)
+                <div class="card shadow-sm match-card position-relative"
+                     role="link"
+                     tabindex="0"
+                     @onclick="() => GoToMatch(match.Id)"
+                     @onkeydown="args => HandleMatchCardKeyDown(args, match.Id)">
+                    <button type="button"
+                            class="btn-close match-delete-button position-absolute top-0 end-0 m-2"
+                            aria-label="Delete match"
+                            disabled="@(deletingMatchId == match.Id)"
+                            @onclick:stopPropagation="true"
+                            @onclick="() => DeleteMatch(match)">
+                    </button>
+                    <div class="card-body p-2 pe-4">
+                        <table class="table table-sm table-borderless text-center mb-0 align-middle">
+                            <tbody>
+                                <tr>
+                                    <td class="text-start fw-bold">
+                                        @match.Player1.LastName
+                                        @if (match.ServingPlayerId == match.Player1.Id)
                                         {
-                                            <td>@set.Player1Games</td>
+                                            <span title="Au service"> 🎾</span>
                                         }
-                                        <td class="fw-bold text-primary">
-                                            @match.Player1.CurrentScore
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-start fw-bold">
-                                            @match.Player2.LastName
-                                            @if (match.ServingPlayerId == match.Player2.Id)
-                                            {
-                                                <span title="Au service"> 🎾</span>
-                                            }
-                                        </td>
-                                        @foreach (var set in match.Sets)
+                                    </td>
+                                    @foreach (var set in match.Sets)
+                                    {
+                                        <td>@set.Player1Games</td>
+                                    }
+                                    <td class="fw-bold text-primary">
+                                        @match.Player1.CurrentScore
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start fw-bold">
+                                        @match.Player2.LastName
+                                        @if (match.ServingPlayerId == match.Player2.Id)
                                         {
-                                            <td>@set.Player2Games</td>
+                                            <span title="Au service"> 🎾</span>
                                         }
-                                        <td class="fw-bold text-primary">
-                                            @match.Player2.CurrentScore
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                                    </td>
+                                    @foreach (var set in match.Sets)
+                                    {
+                                        <td>@set.Player2Games</td>
+                                    }
+                                    <td class="fw-bold text-primary">
+                                        @match.Player2.CurrentScore
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                </NavLink>
+                </div>
             </div>
         }
     </div>
@@ -127,6 +176,8 @@ else
     [Parameter] public Guid TournamentId { get; set; }
     private TournamentDto? Tournament { get; set; }
     private bool ShowAll = false;
+    private Guid? deletingMatchId;
+    private string? errorMessage;
     private List<MatchDetailsDto> Matches => Tournament?.Matches?.ToList() ?? new List<MatchDetailsDto>();
 
     protected override async Task OnInitializedAsync()
@@ -161,6 +212,46 @@ else
 
     private static string GetPlayerName(PlayerDto player)
         => $"{player.FirstName} {player.LastName}".Trim();
+
+    private void GoToMatch(Guid matchId)
+    {
+        Navigation.NavigateTo($"/match/{matchId}");
+    }
+
+    private void HandleMatchCardKeyDown(KeyboardEventArgs args, Guid matchId)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            GoToMatch(matchId);
+        }
+    }
+
+    private async Task DeleteMatch(MatchDetailsDto match)
+    {
+        errorMessage = null;
+        deletingMatchId = match.Id;
+
+        try
+        {
+            var deleted = await TennisApiClient.MatchesDELETEAsync(match.Id);
+            if (deleted)
+            {
+                Tournament?.Matches.Remove(match);
+            }
+            else
+            {
+                errorMessage = "The match could not be deleted.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to delete match: {ex.Message}";
+        }
+        finally
+        {
+            deletingMatchId = null;
+        }
+    }
 
     private void ToggleShowAll() => ShowAll = !ShowAll;
 }
