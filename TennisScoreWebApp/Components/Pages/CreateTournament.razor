@@ -155,8 +155,10 @@
         </InputSelect>
     </div>
 
-    <button type="submit" class="btn btn-primary me-2">Create Tournament</button>
-    <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+    <button type="submit" class="btn btn-primary me-2" disabled="@isSubmitting">
+        @(isSubmitting ? "Creating..." : "Create Tournament")
+    </button>
+    <button type="button" class="btn btn-secondary" disabled="@isSubmitting" @onclick="Cancel">Cancel</button>
 </EditForm>
 
 @code {
@@ -168,6 +170,7 @@
     };
     private List<MatchFormat> matchFormats = new();
     private string? errorMessage;
+    private bool isSubmitting;
 
     protected override async Task OnInitializedAsync()
     {
@@ -202,8 +205,21 @@
             return;
         }
 
-        await TennisApiClient.TournamentsPOSTAsync(newTournament);
-        Navigation.NavigateTo("/tournaments");
+        isSubmitting = true;
+
+        try
+        {
+            await TennisApiClient.TournamentsPOSTAsync(newTournament);
+            Navigation.NavigateTo("/tournaments");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to create tournament: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
     }
 
     private void Cancel()
