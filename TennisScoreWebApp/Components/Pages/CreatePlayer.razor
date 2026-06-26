@@ -63,7 +63,7 @@
     private async Task HandleValidSubmit()
     {
         await TennisApiClient.PlayersPOSTAsync(player);
-        Navigation.NavigateTo("/tournaments");
+        Navigation.NavigateTo("/players");
     }
 
     private string GetFftRankingString(FftRanking ranking)
@@ -102,6 +102,6 @@
 
     private void Cancel()
     {
-        Navigation.NavigateTo("/tournaments");
+        Navigation.NavigateTo("/players");
     }
 }
