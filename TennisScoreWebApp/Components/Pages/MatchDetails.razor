@@ -163,6 +163,7 @@ else
 
         // Rafraîchir le match et diffuser via SignalR
         var updatedMatch = await TennisApiClient.MatchesGETAsync(Match.Id);
+        Match = updatedMatch;
     }
     private void GoBack()
     {

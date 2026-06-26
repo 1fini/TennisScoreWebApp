@@ -11,13 +11,16 @@ builder.Services
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
+var scoreApiUrl = builder.Configuration["SCORE_API_URL"] ?? "https://localhost:7277/";
+var scoreHubUrl = builder.Configuration["SCOREHUB_URL"] ?? "http://localhost:5227/scoreHub";
+
 // Injection du HttpClient pour TennisApiClient
 builder.Services.AddHttpClient<ITennisApiClient, TennisApiClient>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7277/"); // URL de ton API
+    client.BaseAddress = new Uri(scoreApiUrl);
 });
 
-builder.Services.AddSingleton(new HubService(new Uri(builder.Configuration["SCOREHUB_URL"]))); 
+builder.Services.AddSingleton(new HubService(new Uri(scoreHubUrl))); 
 
 var app = builder.Build();
 

@@ -16,6 +16,11 @@ else
         <DataAnnotationsValidator />
         <ValidationSummary />
 
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">@errorMessage</div>
+        }
+
         <div class="mb-3">
             <label class="form-label">Tournament</label>
             <input class="form-control" value="@tournament.Name" disabled />
@@ -64,6 +69,7 @@ else
     private PlayerLightDto? player2Selected;
     private DateTime matchDate = DateTime.Today;
     private TimeSpan matchTime = DateTime.Now.TimeOfDay;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,6 +104,26 @@ else
 
     private async Task HandleValidSubmit()
     {
+        errorMessage = null;
+
+        if (player1Selected is null || player2Selected is null)
+        {
+            errorMessage = "Select both players.";
+            return;
+        }
+
+        if (player1Selected.Id == player2Selected.Id)
+        {
+            errorMessage = "A match needs two different players.";
+            return;
+        }
+
+        if (match.ServingPlayer == Guid.Empty)
+        {
+            errorMessage = "Select the first server.";
+            return;
+        }
+
         if (tournament?.MatchFormat != null)
         {
             match.BestOfSets = tournament.MatchFormat.SetsToWin;

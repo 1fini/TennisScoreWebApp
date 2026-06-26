@@ -22,7 +22,7 @@ else
             <p class="mb-1"><strong>Lieu :</strong> @Tournament.Location</p>
             <p class="mb-1"><strong>Surface :</strong> @Tournament.Surface</p>
             <p class="mb-1"><strong>Dates :</strong> @($"{Tournament.StartDate:dd MMM yyyy} – {Tournament.EndDate:dd MMM yyyy}")</p>
-            <p class="mb-0"><strong>Matches :</strong> @Tournament.Matches.Count</p>
+            <p class="mb-0"><strong>Matches :</strong> @Matches.Count</p>
         </div>
         <div class="mb-4">
              <!-- link to create a new match -->
@@ -34,11 +34,37 @@ else
         </div>
     </div>
 
+    <h5 class="mb-3">Tournament draw</h5>
+
+    @if (!Matches.Any())
+    {
+        <p>No match in this tournament yet.</p>
+    }
+    else
+    {
+        <div class="list-group mb-4">
+            @foreach (var match in Matches.OrderBy(m => m.StartTime))
+            {
+                <NavLink class="list-group-item list-group-item-action" href=@($"/match/{match.Id}")>
+                    <div class="d-flex w-100 justify-content-between gap-3">
+                        <strong>@GetPlayerName(match.Player1) vs @GetPlayerName(match.Player2)</strong>
+                        <small>@($"{match.StartTime:dd MMM yyyy HH:mm}")</small>
+                    </div>
+                    <small class="text-muted">
+                        @(string.IsNullOrWhiteSpace(match.WinnerLastName)
+                            ? "Scheduled"
+                            : $"Winner: {match.WinnerFirstName} {match.WinnerLastName}")
+                    </small>
+                </NavLink>
+            }
+        </div>
+    }
+
     <!-- Scores en direct -->
     <h5 class="mb-3">Scores en direct</h5>
 
     <div class="row g-2">
-        @foreach (var match in Tournament.Matches.Take(ShowAll ? Tournament.Matches.Count : 6))
+        @foreach (var match in Matches.Take(ShowAll ? Matches.Count : 6))
         {
             <div class="col-12 col-md-6 col-lg-4">
                 <NavLink class="text-decoration-none text-dark" href=@($"/match/{match.Id}")>
@@ -87,7 +113,7 @@ else
         }
     </div>
 
-    @if (Tournament.Matches.Count > 6)
+    @if (Matches.Count > 6)
     {
         <div class="text-center mt-3">
             <button class="btn btn-outline-primary btn-sm" @onclick="ToggleShowAll">
@@ -101,6 +127,7 @@ else
     [Parameter] public Guid TournamentId { get; set; }
     private TournamentDto? Tournament { get; set; }
     private bool ShowAll = false;
+    private List<MatchDetailsDto> Matches => Tournament?.Matches?.ToList() ?? new List<MatchDetailsDto>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -131,6 +158,9 @@ else
     {
         HubService.OnMatchUpdated -= UpdateMatch;
     }
+
+    private static string GetPlayerName(PlayerDto player)
+        => $"{player.FirstName} {player.LastName}".Trim();
 
     private void ToggleShowAll() => ShowAll = !ShowAll;
 }
