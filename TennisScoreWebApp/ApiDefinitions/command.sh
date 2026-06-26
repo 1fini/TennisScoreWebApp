@@ -6,4 +6,5 @@ nswag openapi2csclient \
     /GenerateDtoTypes:true \
     /GenerateClientInterfaces:true \
     /ClassName:TennisApiClient \
-    /InjectHttpClient:true
+    /InjectHttpClient:true \
+    /UseBaseUrl:false

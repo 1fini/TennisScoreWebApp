@@ -36,14 +36,14 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task AddPointAsync(AddPointRequest body, System.Threading.CancellationToken cancellationToken);
 
-        /// <returns>OK</returns>
+        /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task MatchesPOSTAsync(CreateMatchRequest body);
+        System.Threading.Tasks.Task<MatchDto> MatchesPOSTAsync(CreateMatchRequest body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>OK</returns>
+        /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task MatchesPOSTAsync(CreateMatchRequest body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<MatchDto> MatchesPOSTAsync(CreateMatchRequest body, System.Threading.CancellationToken cancellationToken);
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
@@ -167,10 +167,6 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.5.0.0 (NJsonSchema v11.4.0.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TennisApiClient : ITennisApiClient
     {
-        #pragma warning disable 8618
-        private string _baseUrl;
-        #pragma warning restore 8618
-
         private System.Net.Http.HttpClient _httpClient;
         private static System.Lazy<Newtonsoft.Json.JsonSerializerSettings> _settings = new System.Lazy<Newtonsoft.Json.JsonSerializerSettings>(CreateSerializerSettings, true);
         private Newtonsoft.Json.JsonSerializerSettings _instanceSettings;
@@ -188,17 +184,6 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
             var settings = new Newtonsoft.Json.JsonSerializerSettings();
             UpdateJsonSerializerSettings(settings);
             return settings;
-        }
-
-        public string BaseUrl
-        {
-            get { return _baseUrl; }
-            set
-            {
-                _baseUrl = value;
-                if (!string.IsNullOrEmpty(_baseUrl) && !_baseUrl.EndsWith("/"))
-                    _baseUrl += '/';
-            }
         }
 
         protected Newtonsoft.Json.JsonSerializerSettings JsonSerializerSettings { get { return _instanceSettings ?? _settings.Value; } }
@@ -236,7 +221,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Method = new System.Net.Http.HttpMethod("POST");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/LiveScore/add-point"
                     urlBuilder_.Append("api/LiveScore/add-point");
 
@@ -287,17 +272,17 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
             }
         }
 
-        /// <returns>OK</returns>
+        /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task MatchesPOSTAsync(CreateMatchRequest body)
+        public virtual System.Threading.Tasks.Task<MatchDto> MatchesPOSTAsync(CreateMatchRequest body)
         {
             return MatchesPOSTAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>OK</returns>
+        /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task MatchesPOSTAsync(CreateMatchRequest body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<MatchDto> MatchesPOSTAsync(CreateMatchRequest body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -310,9 +295,10 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Matches"
                     urlBuilder_.Append("api/Matches");
 
@@ -339,9 +325,20 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200 || status_ == 201)
+                        if (status_ == 201)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<MatchDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            string responseText_ = ( response_.Content == null ) ? string.Empty : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new ApiException("Bad Request", status_, responseText_, headers_, null);
                         }
                         else
                         {
@@ -385,7 +382,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Matches"
                     urlBuilder_.Append("api/Matches");
 
@@ -466,7 +463,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Matches/{id}"
                     urlBuilder_.Append("api/Matches/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -555,7 +552,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/MatchFormats"
                     urlBuilder_.Append("api/MatchFormats");
 
@@ -636,7 +633,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/MatchFormats/{id}"
                     urlBuilder_.Append("api/MatchFormats/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -719,7 +716,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Players"
                     urlBuilder_.Append("api/Players");
 
@@ -797,7 +794,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Players"
                     urlBuilder_.Append("api/Players");
 
@@ -875,7 +872,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Players"
                     urlBuilder_.Append("api/Players");
                     urlBuilder_.Append('?');
@@ -962,7 +959,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Players/{id}"
                     urlBuilder_.Append("api/Players/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1051,7 +1048,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Players/search"
                     urlBuilder_.Append("api/Players/search");
                     urlBuilder_.Append('?');
@@ -1139,7 +1136,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Tournaments"
                     urlBuilder_.Append("api/Tournaments");
 
@@ -1217,7 +1214,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Tournaments"
                     urlBuilder_.Append("api/Tournaments");
 
@@ -1298,7 +1295,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Tournaments/{id}"
                     urlBuilder_.Append("api/Tournaments/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1390,7 +1387,7 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                
                     // Operation Path: "api/Tournaments/{id}"
                     urlBuilder_.Append("api/Tournaments/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
