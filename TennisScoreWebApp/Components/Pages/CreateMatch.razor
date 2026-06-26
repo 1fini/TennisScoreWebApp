@@ -76,6 +76,7 @@ else
         tournament = await TennisApiClient.TournamentsGETAsync(TournamentId);
 
         match.TournamentId = TournamentId;
+        match.BestOfSets = tournament.MatchFormat?.SetsToWin ?? 3;
         matchDate = DateTime.Today;
         matchTime = DateTime.Now.TimeOfDay;
 
@@ -128,6 +129,12 @@ else
         {
             match.BestOfSets = tournament.MatchFormat.SetsToWin;
         }
+
+        if (match.BestOfSets < 1)
+        {
+            match.BestOfSets = 3;
+        }
+
         match.MatchDate = matchDate.Date + matchTime;
         await TennisApiClient.MatchesPOSTAsync(match);
         Navigation.NavigateTo($"/tournaments/{TournamentId}");
