@@ -1,4 +1,5 @@
 @page "/matches/create/{TournamentId:guid}"
+@rendermode InteractiveServer
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 @using TennisScoreWebApp.Components
 @inject ITennisApiClient TennisApiClient
@@ -12,7 +13,7 @@
 }
 else
 {
-    <EditForm EditContext="editContext" OnValidSubmit="HandleValidSubmit" FormName="CreateMatchForm">
+    <EditForm EditContext="editContext" OnSubmit="HandleSubmit" FormName="CreateMatchForm">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -62,7 +63,7 @@ else
     [Parameter] public Guid TournamentId { get; set; }
 
     private TournamentDto? tournament;
-    private CreateMatchRequest match = new();
+    private CreateMatchRequest match = new() { BestOfSets = 3 };
     private EditContext? editContext;
 
     private PlayerLightDto? player1Selected;
@@ -75,8 +76,7 @@ else
     {
         tournament = await TennisApiClient.TournamentsGETAsync(TournamentId);
 
-        match.TournamentId = TournamentId;
-        match.BestOfSets = tournament.MatchFormat?.SetsToWin ?? 3;
+        ApplyTournamentDefaults();
         matchDate = DateTime.Today;
         matchTime = DateTime.Now.TimeOfDay;
 
@@ -103,9 +103,15 @@ else
         return Task.CompletedTask;
     }
 
-    private async Task HandleValidSubmit()
+    private async Task HandleSubmit(EditContext context)
     {
         errorMessage = null;
+        ApplyTournamentDefaults();
+
+        if (!context.Validate())
+        {
+            return;
+        }
 
         if (player1Selected is null || player2Selected is null)
         {
@@ -125,19 +131,16 @@ else
             return;
         }
 
-        if (tournament?.MatchFormat != null)
-        {
-            match.BestOfSets = tournament.MatchFormat.SetsToWin;
-        }
-
-        if (match.BestOfSets < 1)
-        {
-            match.BestOfSets = 3;
-        }
-
         match.MatchDate = matchDate.Date + matchTime;
         await TennisApiClient.MatchesPOSTAsync(match);
         Navigation.NavigateTo($"/tournaments/{TournamentId}");
+    }
+
+    private void ApplyTournamentDefaults()
+    {
+        var setsToWin = tournament?.MatchFormat?.SetsToWin ?? 3;
+        match.BestOfSets = setsToWin is >= 1 and <= 5 ? setsToWin : 3;
+        match.TournamentId = TournamentId;
     }
 
     private void Cancel()
