@@ -1,6 +1,7 @@
 @page "/players"
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 @inject ITennisApiClient TennisApiClient
+@inject IJSRuntime JS
 
 @rendermode InteractiveServer
 
@@ -80,6 +81,16 @@ else
     private async Task DeletePlayer(PlayerLightDto player)
     {
         errorMessage = null;
+
+        var confirmed = await JS.InvokeAsync<bool>(
+            "confirm",
+            $"Delete player {player.FirstName} {player.LastName}?");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
         isDeleting = true;
 
         try
