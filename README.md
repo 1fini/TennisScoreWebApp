@@ -58,6 +58,7 @@ The WebApp is the only public container in the production stack. The API and Pos
 .
 ├── Dockerfile
 ├── docker-compose.prod.yml
+├── deploy.sh
 ├── .env.prod.example
 ├── TennisScoreWebApp.sln
 └── TennisScoreWebApp/
@@ -177,7 +178,7 @@ Deploy without running database migrations:
 ./deploy.sh --skip-migration
 ```
 
-The deployment script validates the compose configuration, pulls images, runs migrations unless skipped, starts the stack, prunes unused images, and attempts to restart the stack if a deployment step fails.
+The deployment script validates the compose configuration, pulls images, runs migrations unless skipped, starts the stack, prunes unused images, and attempts to restart existing containers if a deployment step fails.
 
 Start the stack manually:
 
