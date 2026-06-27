@@ -34,7 +34,7 @@ else
                         <div>Winner: @WinnerName</div>
                     </div>
                     <div class="fw-semibold">
-                        Final score: @GetFinalScore()
+                        Final score: @MatchScore
                     </div>
                 </div>
             }
@@ -69,7 +69,7 @@ else
                             </td>
                             @foreach (var set in Match.Sets)
                             {
-                                <td>@set.Player1Games</td>
+                                <td>@GetSetCellScore(set, Match.Player1.Id)</td>
                             }
                         </tr>
                         <tr>
@@ -87,7 +87,7 @@ else
                             </td>
                             @foreach (var set in Match.Sets)
                             {
-                                <td>@set.Player2Games</td>
+                                <td>@GetSetCellScore(set, Match.Player2.Id)</td>
                             }
                         </tr>
                     </tbody>
@@ -246,6 +246,8 @@ else
                 Match.Sets = updatedMatch.Sets;
                 Match.ServingPlayerId = updatedMatch.ServingPlayerId;
                 Match.EndTime = updatedMatch.EndTime;
+                Match.IsCompleted = updatedMatch.IsCompleted;
+                Match.Score = updatedMatch.Score;
                 Match.WinnerFirstName = updatedMatch.WinnerFirstName;
                 Match.WinnerLastName = updatedMatch.WinnerLastName;
                 StateHasChanged();
@@ -254,15 +256,33 @@ else
     }
 
     private bool IsMatchFinished
-        => Match?.EndTime != null || !string.IsNullOrWhiteSpace(WinnerName);
+        => Match?.IsCompleted == true || Match?.EndTime != null || !string.IsNullOrWhiteSpace(WinnerName);
 
     private string WinnerName
         => $"{Match?.WinnerFirstName} {Match?.WinnerLastName}".Trim();
 
-    private string GetFinalScore()
-        => Match?.Sets == null || !Match.Sets.Any()
-            ? "0-0"
-            : string.Join(", ", Match.Sets.Select(set => $"{set.Player1Games}-{set.Player2Games}"));
+    private string MatchScore
+        => !string.IsNullOrWhiteSpace(Match?.Score)
+            ? Match.Score
+            : Match?.Sets == null || !Match.Sets.Any()
+                ? "0-0"
+                : string.Join(" ", Match.Sets.Select(set => set.DisplayScore ?? $"{set.Player1Games}-{set.Player2Games}"));
+
+    private string GetSetCellScore(SetScoreDto set, Guid playerId)
+    {
+        var isPlayer1 = Match?.Player1.Id == playerId;
+        var games = isPlayer1 ? set.Player1Games : set.Player2Games;
+        var otherGames = isPlayer1 ? set.Player2Games : set.Player1Games;
+        var tieBreakPoints = isPlayer1 ? set.Player1TieBreakPoints : set.Player2TieBreakPoints;
+
+        if (set.IsSuperTieBreak && tieBreakPoints.HasValue)
+            return tieBreakPoints.Value.ToString();
+
+        if (set.IsTieBreak && games < otherGames && tieBreakPoints.HasValue)
+            return $"{games}({tieBreakPoints})";
+
+        return games.ToString();
+    }
 
     private static string GetPlayerName(PlayerDto player)
         => $"{player.FirstName} {player.LastName}".Trim();

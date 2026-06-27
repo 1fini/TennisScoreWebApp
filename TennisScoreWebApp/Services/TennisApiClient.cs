@@ -1998,6 +1998,12 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
         [Newtonsoft.Json.JsonProperty("endTime", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public System.DateTimeOffset? EndTime { get; set; }
 
+        [Newtonsoft.Json.JsonProperty("isCompleted", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public bool IsCompleted { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("score", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Score { get; set; }
+
         [Newtonsoft.Json.JsonProperty("surface", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Surface { get; set; }
 
@@ -2039,6 +2045,12 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 
         [Newtonsoft.Json.JsonProperty("endTime", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public System.DateTimeOffset? EndTime { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("isCompleted", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public bool IsCompleted { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("score", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Score { get; set; }
 
         [Newtonsoft.Json.JsonProperty("winnerFirstName", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string WinnerFirstName { get; set; }
@@ -2249,6 +2261,21 @@ namespace TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 
         [Newtonsoft.Json.JsonProperty("winnerId", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public System.Guid? WinnerId { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("isTieBreak", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public bool IsTieBreak { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("isSuperTieBreak", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public bool IsSuperTieBreak { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("player1TieBreakPoints", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public int? Player1TieBreakPoints { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("player2TieBreakPoints", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public int? Player2TieBreakPoints { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("displayScore", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string DisplayScore { get; set; }
 
     }
 

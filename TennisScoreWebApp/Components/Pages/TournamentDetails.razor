@@ -97,6 +97,15 @@ else
                                 @onclick="() => DeleteMatch(match)">
                         </button>
                         <div class="card-body p-2 pe-4">
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                                <div class="small text-muted">
+                                    Score <span class="fw-semibold text-body">@GetMatchScore(match)</span>
+                                </div>
+                                @if (match.IsCompleted)
+                                {
+                                    <span class="badge text-bg-success">Finished</span>
+                                }
+                            </div>
                             <table class="table table-sm table-borderless text-center mb-0 align-middle">
                                 <tbody>
                                     <tr>
@@ -109,7 +118,7 @@ else
                                         </td>
                                         @foreach (var set in match.Sets)
                                         {
-                                            <td>@set.Player1Games</td>
+                                            <td>@GetSetCellScore(match, set, match.Player1.Id)</td>
                                         }
                                         <td class="fw-bold text-primary">
                                             @match.Player1.CurrentScore
@@ -125,7 +134,7 @@ else
                                         </td>
                                         @foreach (var set in match.Sets)
                                         {
-                                            <td>@set.Player2Games</td>
+                                            <td>@GetSetCellScore(match, set, match.Player2.Id)</td>
                                         }
                                         <td class="fw-bold text-primary">
                                             @match.Player2.CurrentScore
@@ -178,6 +187,11 @@ else
                 existing.Player2.CurrentScore = updatedMatch.Player2.CurrentScore;
                 existing.Sets = updatedMatch.Sets;
                 existing.ServingPlayerId = updatedMatch.ServingPlayerId;
+                existing.EndTime = updatedMatch.EndTime;
+                existing.IsCompleted = updatedMatch.IsCompleted;
+                existing.Score = updatedMatch.Score;
+                existing.WinnerFirstName = updatedMatch.WinnerFirstName;
+                existing.WinnerLastName = updatedMatch.WinnerLastName;
                 StateHasChanged();
             }
         });
@@ -190,6 +204,29 @@ else
 
     private static string GetPlayerName(PlayerDto player)
         => $"{player.FirstName} {player.LastName}".Trim();
+
+    private static string GetMatchScore(MatchDetailsDto match)
+        => !string.IsNullOrWhiteSpace(match.Score)
+            ? match.Score
+            : match.Sets == null || !match.Sets.Any()
+                ? "0-0"
+                : string.Join(" ", match.Sets.Select(set => set.DisplayScore ?? $"{set.Player1Games}-{set.Player2Games}"));
+
+    private static string GetSetCellScore(MatchDetailsDto match, SetScoreDto set, Guid playerId)
+    {
+        var isPlayer1 = match.Player1.Id == playerId;
+        var games = isPlayer1 ? set.Player1Games : set.Player2Games;
+        var otherGames = isPlayer1 ? set.Player2Games : set.Player1Games;
+        var tieBreakPoints = isPlayer1 ? set.Player1TieBreakPoints : set.Player2TieBreakPoints;
+
+        if (set.IsSuperTieBreak && tieBreakPoints.HasValue)
+            return tieBreakPoints.Value.ToString();
+
+        if (set.IsTieBreak && games < otherGames && tieBreakPoints.HasValue)
+            return $"{games}({tieBreakPoints})";
+
+        return games.ToString();
+    }
 
     private void GoToMatch(Guid matchId)
     {

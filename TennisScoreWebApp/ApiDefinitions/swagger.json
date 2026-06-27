@@ -989,6 +989,13 @@
             "format": "date-time",
             "nullable": true
           },
+          "isCompleted": {
+            "type": "boolean"
+          },
+          "score": {
+            "type": "string",
+            "nullable": true
+          },
           "surface": {
             "type": "string",
             "nullable": true
@@ -1051,6 +1058,13 @@
           "endTime": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "isCompleted": {
+            "type": "boolean"
+          },
+          "score": {
+            "type": "string",
             "nullable": true
           },
           "winnerFirstName": {
@@ -1272,6 +1286,26 @@
           "winnerId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "isTieBreak": {
+            "type": "boolean"
+          },
+          "isSuperTieBreak": {
+            "type": "boolean"
+          },
+          "player1TieBreakPoints": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "player2TieBreakPoints": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "displayScore": {
+            "type": "string",
             "nullable": true
           }
         },
