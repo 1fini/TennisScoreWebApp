@@ -97,15 +97,12 @@ else
                                 @onclick="() => DeleteMatch(match)">
                         </button>
                         <div class="card-body p-2 pe-4">
-                            <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
-                                <div class="small text-muted">
-                                    Score <span class="fw-semibold text-body">@GetMatchScore(match)</span>
-                                </div>
-                                @if (match.IsCompleted)
-                                {
+                            @if (match.IsCompleted)
+                            {
+                                <div class="d-flex justify-content-end mb-1">
                                     <span class="badge text-bg-success">Finished</span>
-                                }
-                            </div>
+                                </div>
+                            }
                             <table class="table table-sm table-borderless text-center mb-0 align-middle">
                                 <tbody>
                                     <tr>
@@ -210,13 +207,6 @@ else
 
     private static string GetPlayerName(PlayerDto player)
         => $"{player.FirstName} {player.LastName}".Trim();
-
-    private static string GetMatchScore(MatchDetailsDto match)
-        => !string.IsNullOrWhiteSpace(match.Score)
-            ? match.Score
-            : match.Sets == null || !match.Sets.Any()
-                ? "0-0"
-                : string.Join(" ", match.Sets.Select(set => set.DisplayScore ?? $"{set.Player1Games}-{set.Player2Games}"));
 
     private static string GetSetCellScore(MatchDetailsDto match, SetScoreDto set, Guid playerId)
     {
