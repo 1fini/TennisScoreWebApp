@@ -58,6 +58,7 @@ The WebApp is the only public container in the production stack. The API and Pos
 .
 ├── Dockerfile
 ├── docker-compose.prod.yml
+├── deploy.sh
 ├── .env.prod.example
 ├── TennisScoreWebApp.sln
 └── TennisScoreWebApp/
@@ -151,8 +152,10 @@ TRAEFIK_HOST=tennis.example.com
 TRAEFIK_ACME_EMAIL=admin@example.com
 TRAEFIK_CERT_RESOLVER=letsencrypt
 TRAEFIK_LOG_LEVEL=INFO
+TRAEFIK_BASIC_AUTH_USERS=tmc:$$2y$$05$$yHSYiX0E7cIzD5vD3GTrFeL7Q4aOA7eomJHjfyZGgpdEnsRn9trP2
 
 API_IMAGE=1fini/tennisscoreapi:latest
+MIGRATIONS_IMAGE=1fini/tennisscoreapi-migrations:latest
 WEBAPP_IMAGE=1fini/tennisscore-webapp:latest
 
 ASPNETCORE_ENVIRONMENT=Production
@@ -162,11 +165,42 @@ DB_USER=tennisscore
 DB_PASSWORD=change-me
 ```
 
-Start the stack:
+Deploy the stack:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Deploy without running database migrations:
+
+```bash
+./deploy.sh --skip-migration
+```
+
+The deployment script validates the compose configuration, pulls images, runs migrations unless skipped, starts the stack, prunes unused images, and attempts to restart existing containers if a deployment step fails.
+
+Start the stack manually:
 
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
+
+Apply database migrations explicitly when needed:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml --profile migrations run --rm migrations
+```
+
+The migration service is behind the `migrations` profile, so it does not run during a normal `up -d`. It waits for the PostgreSQL health check before applying migrations.
+
+The WebApp is protected by Traefik Basic Auth. Generate a replacement user hash with:
+
+```bash
+htpasswd -nbB tmc 'your-password'
+```
+
+When storing the hash in `.env.prod`, replace each `$` printed by `htpasswd` with `$$` so Docker Compose does not treat hash fragments as variables.
 
 Inspect logs:
 
@@ -193,6 +227,7 @@ The production compose file expects these images by default:
 
 - `1fini/tennisscore-webapp:latest`
 - `1fini/tennisscoreapi:latest`
+- `1fini/tennisscoreapi-migrations:latest`
 
 The GitHub workflow builds and publishes multi-architecture images for:
 
@@ -207,8 +242,10 @@ This makes the stack suitable for Raspberry Pi deployments.
 | --- | --- | --- |
 | `SCORE_API_URL` | Internal API base URL used by the WebApp | `http://api:8080/` |
 | `SCOREHUB_URL` | Internal SignalR hub URL used by the WebApp | `http://api:8080/scoreHub` |
+| `MIGRATIONS_IMAGE` | EF Core migration bundle image | `1fini/tennisscoreapi-migrations:latest` |
 | `TRAEFIK_HOST` | Public hostname served by Traefik | `tennis.example.com` |
 | `TRAEFIK_ACME_EMAIL` | Email used for Let's Encrypt certificates | `admin@example.com` |
+| `TRAEFIK_BASIC_AUTH_USERS` | Traefik Basic Auth users in htpasswd format, with `$` escaped as `$$` in `.env.prod` | `tmc:$$2y$$...` |
 | `DB_NAME` | PostgreSQL database name | `tennisscore` |
 | `DB_USER` | PostgreSQL user | `tennisscore` |
 | `DB_PASSWORD` | PostgreSQL password | `change-me` |
@@ -218,13 +255,14 @@ This makes the stack suitable for Raspberry Pi deployments.
 - HTTPS is terminated by Traefik, not by the application containers.
 - The WebApp and API listen on HTTP port `8080` inside Docker.
 - The API is not exposed publicly by the compose file.
-- Database migrations are not yet automated by the production compose file. Run EF migrations explicitly before using a fresh production database.
+- Database migrations are explicit and run through the `migrations` compose profile.
+- PostgreSQL has a Docker health check used by the migration container.
+- The WebApp is protected at the reverse proxy layer with Traefik Basic Auth.
 
 ## Roadmap
 
-- Add a dedicated database migration job/container.
-- Add health checks for WebApp, API, and PostgreSQL.
-- Add authentication for MVP users.
+- Add health checks for WebApp and API.
+- Replace Basic Auth with application-level authentication when user onboarding needs it.
 - Harden production headers and forwarded header handling behind Traefik.
 - Improve observability with structured logs and deployment documentation.
 

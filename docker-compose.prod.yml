@@ -35,6 +35,30 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tennisscore-internal
+
+  migrations:
+    image: ${MIGRATIONS_IMAGE:-1fini/tennisscoreapi-migrations:latest}
+    container_name: tennisscore-migrations
+    profiles:
+      - migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     networks:
       - tennisscore-internal
 
@@ -78,6 +102,8 @@ services:
       - traefik.http.routers.tennisscore-webapp.tls=true
       - traefik.http.routers.tennisscore-webapp.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
       - traefik.http.services.tennisscore-webapp.loadbalancer.server.port=8080
+      - traefik.http.middlewares.tennisscore-auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS:?TRAEFIK_BASIC_AUTH_USERS is required}
+      - traefik.http.routers.tennisscore-webapp.middlewares=tennisscore-auth
     networks:
       - tennisscore-internal
       - traefik
