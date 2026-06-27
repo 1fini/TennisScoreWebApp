@@ -25,6 +25,19 @@ else
             <h3 class="card-title mb-3">@Match.Player1.LastName vs @Match.Player2.LastName</h3>
             <p class="card-text mb-2"><strong>Tournament:</strong> @Match.TournamentName</p>
             <p class="card-text mb-3"><strong>Date:</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
+
+            @if (IsMatchFinished)
+            {
+                <div class="alert alert-success d-flex align-items-center justify-content-between gap-3 flex-wrap" role="status">
+                    <div>
+                        <strong>Match finished</strong>
+                        <div>Winner: @WinnerName</div>
+                    </div>
+                    <div class="fw-semibold">
+                        Final score: @GetFinalScore()
+                    </div>
+                </div>
+            }
             
             <h5>Set score</h5>
             @if (Match.Sets != null && Match.Sets.Any())
@@ -124,64 +137,73 @@ else
         }
     </style>
 
-    <h4 class="mb-3">Add a point</h4>
-    <div class="row g-3 mb-4">
-        @foreach (var player in new[] { Match.Player1, Match.Player2 })
-        {
-            <div class="col-12 col-lg-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <div>
-                                <h5 class="mb-0">@GetPlayerName(player)</h5>
-                                <small class="text-muted">Record an event by this player</small>
-                            </div>
-                            @if (Match.ServingPlayerId == player.Id)
-                            {
-                                <span class="badge bg-light text-dark border" title="Serving">Serving</span>
-                            }
-                        </div>
-
-                        <div class="point-action-section">
-                            <div class="point-action-section-title text-success mb-2">
-                                Point won by @GetPlayerName(player)
-                            </div>
-                            <div class="point-actions-grid">
-                                @foreach (var pointType in PointWonActions)
+    @if (IsMatchFinished)
+    {
+        <div class="alert alert-secondary" role="status">
+            Scoring is closed for this completed match.
+        </div>
+    }
+    else
+    {
+        <h4 class="mb-3">Add a point</h4>
+        <div class="row g-3 mb-4">
+            @foreach (var player in new[] { Match.Player1, Match.Player2 })
+            {
+                <div class="col-12 col-lg-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div>
+                                    <h5 class="mb-0">@GetPlayerName(player)</h5>
+                                    <small class="text-muted">Record an event by this player</small>
+                                </div>
+                                @if (Match.ServingPlayerId == player.Id)
                                 {
-                                    <button type="button"
-                                            class="btn @GetPointClass(pointType) point-action-button"
-                                            disabled="@IsPointActionDisabled(player, pointType)"
-                                            title="@GetPointActionTitle(player, pointType)"
-                                            @onclick="(() => AddPoint(player.Id, pointType))">
-                                        @GetPointLabel(pointType)
-                                    </button>
+                                    <span class="badge bg-light text-dark border" title="Serving">Serving</span>
                                 }
                             </div>
-                        </div>
 
-                        <div class="point-action-section">
-                            <div class="point-action-section-title text-danger mb-2">
-                                Error by @GetPlayerName(player), point to @GetPlayerName(GetOpponent(player))
+                            <div class="point-action-section">
+                                <div class="point-action-section-title text-success mb-2">
+                                    Point won by @GetPlayerName(player)
+                                </div>
+                                <div class="point-actions-grid">
+                                    @foreach (var pointType in PointWonActions)
+                                    {
+                                        <button type="button"
+                                                class="btn @GetPointClass(pointType) point-action-button"
+                                                disabled="@IsPointActionDisabled(player, pointType)"
+                                                title="@GetPointActionTitle(player, pointType)"
+                                                @onclick="(() => AddPoint(player.Id, pointType))">
+                                            @GetPointLabel(pointType)
+                                        </button>
+                                    }
+                                </div>
                             </div>
-                            <div class="point-actions-grid">
-                                @foreach (var pointType in OpponentPointActions)
-                                {
-                                    <button type="button"
-                                            class="btn @GetPointClass(pointType) point-action-button"
-                                            disabled="@IsPointActionDisabled(player, pointType)"
-                                            title="@GetPointActionTitle(player, pointType)"
-                                            @onclick="(() => AddPoint(GetOpponent(player).Id, pointType))">
-                                        @GetPointLabel(pointType)
-                                    </button>
-                                }
+
+                            <div class="point-action-section">
+                                <div class="point-action-section-title text-danger mb-2">
+                                    Error by @GetPlayerName(player), point to @GetPlayerName(GetOpponent(player))
+                                </div>
+                                <div class="point-actions-grid">
+                                    @foreach (var pointType in OpponentPointActions)
+                                    {
+                                        <button type="button"
+                                                class="btn @GetPointClass(pointType) point-action-button"
+                                                disabled="@IsPointActionDisabled(player, pointType)"
+                                                title="@GetPointActionTitle(player, pointType)"
+                                                @onclick="(() => AddPoint(GetOpponent(player).Id, pointType))">
+                                            @GetPointLabel(pointType)
+                                        </button>
+                                    }
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
+    }
 }
 
 @code {
@@ -223,10 +245,24 @@ else
                 Match.Player2.CurrentScore = updatedMatch.Player2.CurrentScore;
                 Match.Sets = updatedMatch.Sets;
                 Match.ServingPlayerId = updatedMatch.ServingPlayerId;
+                Match.EndTime = updatedMatch.EndTime;
+                Match.WinnerFirstName = updatedMatch.WinnerFirstName;
+                Match.WinnerLastName = updatedMatch.WinnerLastName;
                 StateHasChanged();
             }
         });
     }
+
+    private bool IsMatchFinished
+        => Match?.EndTime != null || !string.IsNullOrWhiteSpace(WinnerName);
+
+    private string WinnerName
+        => $"{Match?.WinnerFirstName} {Match?.WinnerLastName}".Trim();
+
+    private string GetFinalScore()
+        => Match?.Sets == null || !Match.Sets.Any()
+            ? "0-0"
+            : string.Join(", ", Match.Sets.Select(set => $"{set.Player1Games}-{set.Player2Games}"));
 
     private static string GetPlayerName(PlayerDto player)
         => $"{player.FirstName} {player.LastName}".Trim();
@@ -278,7 +314,7 @@ else
 
     private async Task AddPoint(Guid player, PointType pointType)
     {
-        if (Match == null) return;
+        if (Match == null || IsMatchFinished) return;
 
         var addPointRequest = new AddPointRequest
         {
