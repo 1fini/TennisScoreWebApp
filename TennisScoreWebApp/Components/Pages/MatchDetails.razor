@@ -8,7 +8,7 @@
 @rendermode InteractiveServer
 
 <div class="d-flex align-items-center justify-content-between mb-4">
-    <h2 class="mb-0">Détails du Match</h2>
+    <h2 class="mb-0">Match details</h2>
     <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
         Back to tournament
     </button>
@@ -16,23 +16,23 @@
 
 @if (Match == null)
 {
-    <p><em>Chargement en cours...</em></p>
+    <p><em>Loading...</em></p>
 }
 else
 {
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <h3 class="card-title mb-3">@Match.Player1.LastName vs @Match.Player2.LastName</h3>
-            <p class="card-text mb-2"><strong>Tournoi :</strong> @Match.TournamentName</p>
-            <p class="card-text mb-3"><strong>Date :</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
+            <p class="card-text mb-2"><strong>Tournament:</strong> @Match.TournamentName</p>
+            <p class="card-text mb-3"><strong>Date:</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
             
-            <h5>Score par set</h5>
+            <h5>Set score</h5>
             @if (Match.Sets != null && Match.Sets.Any())
             {
                 <table class="table table-striped table-bordered w-auto text-center align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Joueur</th>
+                            <th>Player</th>
                             <th>Points</th>
                             @for (int i = 0; i < Match.Sets.Count; i++)
                             {
@@ -46,7 +46,7 @@ else
                                 @Match.Player1.LastName
                                 @if (@Match.ServingPlayerId == @Match.Player1.Id)
                                 {
-                                    <span title="Au service" class="ms-1">🎾</span>
+                                    <span title="Serving" class="ms-1">🎾</span>
                                 }
                             </td>
                             <td>
@@ -64,7 +64,7 @@ else
                                 @Match.Player2.LastName
                                 @if (@Match.ServingPlayerId == @Match.Player2.Id)
                                 {
-                                    <span title="Au service" class="ms-1">🎾</span>
+                                    <span title="Serving" class="ms-1">🎾</span>
                                 }
                             </td>
                             <td>
@@ -88,7 +88,7 @@ else
         </div>
     </div>
         <!-- Add a point -->
-    <h4>Ajouter un point</h4>
+    <h4>Add a point</h4>
     <div class="d-flex flex-wrap gap-2 mb-4">
         @foreach (var player in new[] { Match.Player1, Match.Player2 })
         {
@@ -114,10 +114,10 @@ else
     {
         Match = await TennisApiClient.MatchesGETAsync(MatchId);
 
-        // Connexion au Hub
+        // Hub connection
         await HubService.StartAsync(matchId: MatchId);
 
-        // Abonnement aux updates
+        // Subscribe to updates
         HubService.OnMatchUpdated += UpdateMatch;
     }
 
@@ -161,10 +161,10 @@ else
             PointType = pointType
         };
 
-        // Appel API pour ajouter le point
+        // Add the point through the API
         await TennisApiClient.AddPointAsync(addPointRequest);
 
-        // Rafraîchir le match et diffuser via SignalR
+        // Refresh the match after SignalR propagation
         var updatedMatch = await TennisApiClient.MatchesGETAsync(Match.Id);
         Match = updatedMatch;
     }

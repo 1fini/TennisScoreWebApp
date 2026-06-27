@@ -15,13 +15,13 @@
         <div class="alert alert-danger" role="alert">@errorMessage</div>
     }
 
-    <!-- Nom -->
+    <!-- Name -->
     <div class="mb-3">
         <label class="form-label">Name</label>
         <InputText @bind-Value="newTournament.Name" class="form-control" />
     </div>
 
-    <!-- Lieu -->
+    <!-- Location -->
     <div class="mb-3">
         <label class="form-label">Location</label>
         <InputText @bind-Value="newTournament.Location" class="form-control" />
@@ -44,7 +44,7 @@
         <InputTextArea @bind-Value="newTournament.Description" class="form-control" />
     </div>
 
-    <!-- Classement FFT -->
+    <!-- FFT ranking -->
     <div class="row">
         <div class="col-md-6 mb-3">
             <label class="form-label">Minimum FFT ranking</label>
@@ -56,7 +56,7 @@
         </div>
     </div>
 
-    <!-- Âge -->
+    <!-- Age -->
     <div class="row">
         <div class="col-md-6 mb-3">
             <label class="form-label">Minimum age</label>
@@ -68,7 +68,7 @@
         </div>
     </div>
 
-    <!-- Catégories et types -->
+    <!-- Categories and types -->
     <div class="mb-3">
         <label class="form-label">Age category</label>
         <InputSelect @bind-Value="newTournament.AgeCategory" class="form-select">
@@ -99,7 +99,7 @@
         </InputSelect>
     </div>
 
-    <!-- Niveau de balle -->
+    <!-- Ball level -->
     <div class="mb-3">
         <label class="form-label">Ball level</label>
         <InputSelect @bind-Value="newTournament.BallLevel" class="form-select">
@@ -144,7 +144,7 @@
         </div>
     </div>
 
-    <!-- Format de match -->
+    <!-- Match format -->
     <div class="mb-3">
         <label class="form-label">Match format</label>
         <InputSelect @bind-Value="newTournament.MatchFormatId" class="form-select">

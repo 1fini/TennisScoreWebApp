@@ -12,20 +12,27 @@
 
 @if (Tournament == null)
 {
-    <p>Chargement...</p>
+    <p>Loading...</p>
 }
 else
 {
-    <!-- Carte Infos Tournoi -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="mb-0">Tournament details</h2>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
+            Back to tournaments
+        </button>
+    </div>
+
+    <!-- Tournament info card -->
     <div class="card shadow-sm mb-4">
         <div class="card-body p-3">
             <div class="d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3">
                 <div>
                     <h3 class="card-title mb-2">@Tournament.Name</h3>
-                    <p class="mb-1"><strong>Lieu :</strong> @Tournament.Location</p>
-                    <p class="mb-1"><strong>Surface :</strong> @Tournament.Surface</p>
-                    <p class="mb-1"><strong>Dates :</strong> @($"{Tournament.StartDate:dd MMM yyyy} – {Tournament.EndDate:dd MMM yyyy}")</p>
-                    <p class="mb-0"><strong>Matches :</strong> @Matches.Count</p>
+                    <p class="mb-1"><strong>Location:</strong> @Tournament.Location</p>
+                    <p class="mb-1"><strong>Surface:</strong> @Tournament.Surface</p>
+                    <p class="mb-1"><strong>Dates:</strong> @($"{Tournament.StartDate:dd MMM yyyy} – {Tournament.EndDate:dd MMM yyyy}")</p>
+                    <p class="mb-0"><strong>Matches:</strong> @Matches.Count</p>
                 </div>
                 <NavLink href=@($"/matches/create/{Tournament.Id}") class="btn btn-primary btn-sm">
                     New Match
@@ -64,8 +71,8 @@ else
         }
     </style>
 
-    <!-- Scores en direct -->
-    <h5 class="mb-3">Scores en direct</h5>
+    <!-- Live scores -->
+    <h5 class="mb-3">Live scores</h5>
 
     @if (!Matches.Any())
     {
@@ -97,7 +104,7 @@ else
                                             @match.Player1.LastName
                                             @if (match.ServingPlayerId == match.Player1.Id)
                                             {
-                                                <span title="Au service"> 🎾</span>
+                                                <span title="Serving"> 🎾</span>
                                             }
                                         </td>
                                         @foreach (var set in match.Sets)
@@ -113,7 +120,7 @@ else
                                             @match.Player2.LastName
                                             @if (match.ServingPlayerId == match.Player2.Id)
                                             {
-                                                <span title="Au service"> 🎾</span>
+                                                <span title="Serving"> 🎾</span>
                                             }
                                         </td>
                                         @foreach (var set in match.Sets)
@@ -187,6 +194,11 @@ else
     private void GoToMatch(Guid matchId)
     {
         Navigation.NavigateTo($"/match/{matchId}");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/tournaments");
     }
 
     private void HandleMatchCardKeyDown(KeyboardEventArgs args, Guid matchId)
