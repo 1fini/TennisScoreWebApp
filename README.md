@@ -175,7 +175,7 @@ Apply database migrations explicitly when needed:
 docker compose --env-file .env.prod -f docker-compose.prod.yml --profile migrations run --rm migrations
 ```
 
-The migration service is behind the `migrations` profile, so it does not run during a normal `up -d`.
+The migration service is behind the `migrations` profile, so it does not run during a normal `up -d`. It waits for the PostgreSQL health check before applying migrations.
 
 Inspect logs:
 
@@ -230,10 +230,11 @@ This makes the stack suitable for Raspberry Pi deployments.
 - The WebApp and API listen on HTTP port `8080` inside Docker.
 - The API is not exposed publicly by the compose file.
 - Database migrations are explicit and run through the `migrations` compose profile.
+- PostgreSQL has a Docker health check used by the migration container.
 
 ## Roadmap
 
-- Add health checks for WebApp, API, and PostgreSQL.
+- Add health checks for WebApp and API.
 - Add authentication for MVP users.
 - Harden production headers and forwarded header handling behind Traefik.
 - Improve observability with structured logs and deployment documentation.
