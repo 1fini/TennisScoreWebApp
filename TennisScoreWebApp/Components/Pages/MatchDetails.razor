@@ -151,6 +151,8 @@ else
                                 {
                                     <button type="button"
                                             class="btn @GetPointClass(pointType) point-action-button"
+                                            disabled="@IsPointActionDisabled(player, pointType)"
+                                            title="@GetPointActionTitle(player, pointType)"
                                             @onclick="(() => AddPoint(player.Id, pointType))">
                                         @GetPointLabel(pointType)
                                     </button>
@@ -167,6 +169,8 @@ else
                                 {
                                     <button type="button"
                                             class="btn @GetPointClass(pointType) point-action-button"
+                                            disabled="@IsPointActionDisabled(player, pointType)"
+                                            title="@GetPointActionTitle(player, pointType)"
                                             @onclick="(() => AddPoint(GetOpponent(player).Id, pointType))">
                                         @GetPointLabel(pointType)
                                     </button>
@@ -229,6 +233,20 @@ else
 
     private PlayerDto GetOpponent(PlayerDto player)
         => Match?.Player1.Id == player.Id ? Match.Player2 : Match?.Player1 ?? player;
+
+    private bool IsServing(PlayerDto player)
+        => Match?.ServingPlayerId == player.Id;
+
+    private static bool IsServerOnlyPoint(PointType pointType)
+        => pointType is PointType.Ace or PointType.DoubleFault;
+
+    private bool IsPointActionDisabled(PlayerDto player, PointType pointType)
+        => IsServerOnlyPoint(pointType) && !IsServing(player);
+
+    private string GetPointActionTitle(PlayerDto player, PointType pointType)
+        => IsPointActionDisabled(player, pointType)
+            ? $"{GetPointLabel(pointType)} can only be recorded for the serving player."
+            : GetPointLabel(pointType);
 
     private static string GetPointLabel(PointType pointType)
         => pointType switch
