@@ -46,7 +46,10 @@ else
                     <thead class="table-light">
                         <tr>
                             <th>Player</th>
-                            <th>Points</th>
+                            @if (!IsMatchFinished)
+                            {
+                                <th>Points</th>
+                            }
                             @for (int i = 0; i < Match.Sets.Count; i++)
                             {
                                 <th>Set @(i + 1)</th>
@@ -62,11 +65,14 @@ else
                                     <span title="Serving" class="ms-1">🎾</span>
                                 }
                             </td>
-                            <td>
-                                <span class="badge bg-warning text-dark fs-6 px-3">
-                                    @(Match.Player1.CurrentScore ?? "0")
-                                </span>
-                            </td>
+                            @if (!IsMatchFinished)
+                            {
+                                <td>
+                                    <span class="badge bg-warning text-dark fs-6 px-3">
+                                        @(Match.Player1.CurrentScore ?? "0")
+                                    </span>
+                                </td>
+                            }
                             @foreach (var set in Match.Sets)
                             {
                                 <td>@GetSetCellScore(set, Match.Player1.Id)</td>
@@ -80,11 +86,14 @@ else
                                     <span title="Serving" class="ms-1">🎾</span>
                                 }
                             </td>
-                            <td>
-                                <span class="badge bg-warning text-dark fs-6 px-3">
-                                    @(Match.Player2.CurrentScore ?? "0")
-                                </span>
-                            </td>
+                            @if (!IsMatchFinished)
+                            {
+                                <td>
+                                    <span class="badge bg-warning text-dark fs-6 px-3">
+                                        @(Match.Player2.CurrentScore ?? "0")
+                                    </span>
+                                </td>
+                            }
                             @foreach (var set in Match.Sets)
                             {
                                 <td>@GetSetCellScore(set, Match.Player2.Id)</td>

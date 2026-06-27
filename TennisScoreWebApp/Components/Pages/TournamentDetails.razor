@@ -120,9 +120,12 @@ else
                                         {
                                             <td>@GetSetCellScore(match, set, match.Player1.Id)</td>
                                         }
-                                        <td class="fw-bold text-primary">
-                                            @match.Player1.CurrentScore
-                                        </td>
+                                        @if (!match.IsCompleted)
+                                        {
+                                            <td class="fw-bold text-primary">
+                                                @match.Player1.CurrentScore
+                                            </td>
+                                        }
                                     </tr>
                                     <tr>
                                         <td class="text-start fw-bold">
@@ -136,9 +139,12 @@ else
                                         {
                                             <td>@GetSetCellScore(match, set, match.Player2.Id)</td>
                                         }
-                                        <td class="fw-bold text-primary">
-                                            @match.Player2.CurrentScore
-                                        </td>
+                                        @if (!match.IsCompleted)
+                                        {
+                                            <td class="fw-bold text-primary">
+                                                @match.Player2.CurrentScore
+                                            </td>
+                                        }
                                     </tr>
                                 </tbody>
                             </table>
