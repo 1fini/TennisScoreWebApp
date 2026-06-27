@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tennisscore-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tennisscore-internal
+
+  api:
+    image: ${API_IMAGE:-1fini/tennisscoreapi:latest}
+    container_name: tennisscore-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    expose:
+      - "8080"
+    networks:
+      - tennisscore-internal
+
+  webapp:
+    image: ${WEBAPP_IMAGE:-1fini/tennisscore-webapp:latest}
+    container_name: tennisscore-webapp
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      SCORE_API_URL: http://api:8080/
+      SCOREHUB_URL: http://api:8080/scoreHub
+    expose:
+      - "8080"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik}
+      - traefik.http.routers.tennisscore-webapp.rule=Host(`${TRAEFIK_HOST:?TRAEFIK_HOST is required}`)
+      - traefik.http.routers.tennisscore-webapp.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.tennisscore-webapp.tls=true
+      - traefik.http.routers.tennisscore-webapp.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      - traefik.http.services.tennisscore-webapp.loadbalancer.server.port=8080
+    networks:
+      - tennisscore-internal
+      - traefik
+
+volumes:
+  postgres_data:
+
+networks:
+  tennisscore-internal:
+    driver: bridge
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik}
