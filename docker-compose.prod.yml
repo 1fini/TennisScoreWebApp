@@ -38,6 +38,23 @@ services:
     networks:
       - tennisscore-internal
 
+  migrations:
+    image: ${MIGRATIONS_IMAGE:-1fini/tennisscoreapi-migrations:latest}
+    container_name: tennisscore-migrations
+    profiles:
+      - migrations
+    depends_on:
+      - postgres
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    networks:
+      - tennisscore-internal
+
   api:
     image: ${API_IMAGE:-1fini/tennisscoreapi:latest}
     container_name: tennisscore-api

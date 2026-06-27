@@ -153,6 +153,7 @@ TRAEFIK_CERT_RESOLVER=letsencrypt
 TRAEFIK_LOG_LEVEL=INFO
 
 API_IMAGE=1fini/tennisscoreapi:latest
+MIGRATIONS_IMAGE=1fini/tennisscoreapi-migrations:latest
 WEBAPP_IMAGE=1fini/tennisscore-webapp:latest
 
 ASPNETCORE_ENVIRONMENT=Production
@@ -167,6 +168,14 @@ Start the stack:
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
+
+Apply database migrations explicitly when needed:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml --profile migrations run --rm migrations
+```
+
+The migration service is behind the `migrations` profile, so it does not run during a normal `up -d`.
 
 Inspect logs:
 
@@ -193,6 +202,7 @@ The production compose file expects these images by default:
 
 - `1fini/tennisscore-webapp:latest`
 - `1fini/tennisscoreapi:latest`
+- `1fini/tennisscoreapi-migrations:latest`
 
 The GitHub workflow builds and publishes multi-architecture images for:
 
@@ -207,6 +217,7 @@ This makes the stack suitable for Raspberry Pi deployments.
 | --- | --- | --- |
 | `SCORE_API_URL` | Internal API base URL used by the WebApp | `http://api:8080/` |
 | `SCOREHUB_URL` | Internal SignalR hub URL used by the WebApp | `http://api:8080/scoreHub` |
+| `MIGRATIONS_IMAGE` | EF Core migration bundle image | `1fini/tennisscoreapi-migrations:latest` |
 | `TRAEFIK_HOST` | Public hostname served by Traefik | `tennis.example.com` |
 | `TRAEFIK_ACME_EMAIL` | Email used for Let's Encrypt certificates | `admin@example.com` |
 | `DB_NAME` | PostgreSQL database name | `tennisscore` |
@@ -218,11 +229,10 @@ This makes the stack suitable for Raspberry Pi deployments.
 - HTTPS is terminated by Traefik, not by the application containers.
 - The WebApp and API listen on HTTP port `8080` inside Docker.
 - The API is not exposed publicly by the compose file.
-- Database migrations are not yet automated by the production compose file. Run EF migrations explicitly before using a fresh production database.
+- Database migrations are explicit and run through the `migrations` compose profile.
 
 ## Roadmap
 
-- Add a dedicated database migration job/container.
 - Add health checks for WebApp, API, and PostgreSQL.
 - Add authentication for MVP users.
 - Harden production headers and forwarded header handling behind Traefik.
