@@ -7,7 +7,12 @@
 
 @rendermode InteractiveServer
 
-<h2 class="mb-4">Détails du Match</h2>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="mb-0">Détails du Match</h2>
+    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
+        Back to tournament
+    </button>
+</div>
 
 @if (Match == null)
 {
@@ -80,8 +85,6 @@ else
             {
                 <p>Match not started yet.</p>
             }
-
-            <button type="button" class="btn btn-secondary mt-3" @onclick="GoBack">Back to tournament page</button>
         </div>
     </div>
         <!-- Add a point -->
