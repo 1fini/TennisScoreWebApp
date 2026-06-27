@@ -72,16 +72,35 @@ else
     </style>
 
     <!-- Live scores -->
-    <h5 class="mb-3">Live scores</h5>
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+        <h5 class="mb-0">Live scores</h5>
+        @if (Matches.Any())
+        {
+            <div class="btn-group btn-group-sm" role="group" aria-label="Filter matches by status">
+                @foreach (var filter in MatchStatusFilters)
+                {
+                    <button type="button"
+                            class="btn @(SelectedStatusFilter == filter ? "btn-primary" : "btn-outline-primary")"
+                            @onclick="() => SetStatusFilter(filter)">
+                        @filter
+                    </button>
+                }
+            </div>
+        }
+    </div>
 
     @if (!Matches.Any())
     {
         <p>No match in this tournament yet.</p>
     }
+    else if (!FilteredMatches.Any())
+    {
+        <p>No matches for the selected status.</p>
+    }
     else
     {
         <div class="row g-2">
-            @foreach (var match in Matches.Take(ShowAll ? Matches.Count : 6))
+            @foreach (var match in FilteredMatches.Take(ShowAll ? FilteredMatches.Count : 6))
             {
                 <div class="col-12 col-md-6 col-lg-4">
                     <div class="card shadow-sm match-card position-relative"
@@ -97,12 +116,9 @@ else
                                 @onclick="() => DeleteMatch(match)">
                         </button>
                         <div class="card-body p-2 pe-4">
-                            @if (match.IsCompleted)
-                            {
-                                <div class="d-flex justify-content-end mb-1">
-                                    <span class="badge text-bg-success">Finished</span>
-                                </div>
-                            }
+                            <div class="d-flex justify-content-start mb-1">
+                                <span class="badge @GetStatusBadgeClass(match)">@GetMatchStatus(match)</span>
+                            </div>
                             <table class="table table-sm table-borderless text-center mb-0 align-middle">
                                 <tbody>
                                     <tr>
@@ -152,7 +168,7 @@ else
         </div>
     }
 
-    @if (Matches.Count > 6)
+    @if (FilteredMatches.Count > 6)
     {
         <div class="text-center mt-3">
             <button class="btn btn-outline-primary btn-sm" @onclick="ToggleShowAll">
@@ -168,7 +184,12 @@ else
     private bool ShowAll = false;
     private Guid? deletingMatchId;
     private string? errorMessage;
+    private string SelectedStatusFilter = "All";
     private List<MatchDetailsDto> Matches => Tournament?.Matches?.ToList() ?? new List<MatchDetailsDto>();
+    private List<MatchDetailsDto> FilteredMatches => Matches
+        .Where(match => SelectedStatusFilter == "All" || GetMatchStatus(match) == SelectedStatusFilter)
+        .ToList();
+    private static readonly string[] MatchStatusFilters = ["All", "Not started", "Live", "Finished"];
 
     protected override async Task OnInitializedAsync()
     {
@@ -207,6 +228,28 @@ else
 
     private static string GetPlayerName(PlayerDto player)
         => $"{player.FirstName} {player.LastName}".Trim();
+
+    private static string GetMatchStatus(MatchDetailsDto match)
+    {
+        if (match.IsCompleted)
+            return "Finished";
+
+        return match.Sets?.Any() == true ? "Live" : "Not started";
+    }
+
+    private static string GetStatusBadgeClass(MatchDetailsDto match)
+        => GetMatchStatus(match) switch
+        {
+            "Finished" => "text-bg-success",
+            "Live" => "text-bg-primary",
+            _ => "text-bg-secondary"
+        };
+
+    private void SetStatusFilter(string filter)
+    {
+        SelectedStatusFilter = filter;
+        ShowAll = false;
+    }
 
     private static string GetSetCellScore(MatchDetailsDto match, SetScoreDto set, Guid playerId)
     {
