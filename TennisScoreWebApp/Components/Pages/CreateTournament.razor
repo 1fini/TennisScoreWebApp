@@ -1,71 +1,77 @@
 @page "/tournaments/create"
+@rendermode InteractiveServer
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 @inject ITennisApiClient TennisApiClient
 @inject NavigationManager Navigation
 
 <h1 class="text-2xl font-bold mb-4">Create New Tournament</h1>
 
-<EditForm Model="@newTournament" OnValidSubmit="@HandleCreateTournament">
+<EditForm Model="@newTournament" OnValidSubmit="@HandleCreateTournament" FormName="CreateTournamentForm">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
-    <!-- Nom -->
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+
+    <!-- Name -->
     <div class="mb-3">
-        <label class="block font-medium">Nom</label>
-        <InputText @bind-Value="newTournament.Name" class="border rounded p-1 w-full" />
+        <label class="form-label">Name</label>
+        <InputText @bind-Value="newTournament.Name" class="form-control" />
     </div>
 
-    <!-- Lieu -->
+    <!-- Location -->
     <div class="mb-3">
-        <label class="block font-medium">Lieu</label>
-        <InputText @bind-Value="newTournament.Location" class="border rounded p-1 w-full" />
+        <label class="form-label">Location</label>
+        <InputText @bind-Value="newTournament.Location" class="form-control" />
     </div>
 
     <!-- Dates -->
     <div class="mb-3">
-        <label class="block font-medium">Date de début</label>
-        <InputDate @bind-Value="newTournament.StartDate" class="border rounded p-1 w-full" />
+        <label class="form-label">Start date</label>
+        <InputDate @bind-Value="newTournament.StartDate" class="form-control" />
     </div>
 
     <div class="mb-3">
-        <label class="block font-medium">Date de fin</label>
-        <InputDate @bind-Value="newTournament.EndDate" class="border rounded p-1 w-full" />
+        <label class="form-label">End date</label>
+        <InputDate @bind-Value="newTournament.EndDate" class="form-control" />
     </div>
 
     <!-- Description -->
     <div class="mb-3">
-        <label class="block font-medium">Description</label>
-        <InputTextArea @bind-Value="newTournament.Description" class="border rounded p-1 w-full" />
+        <label class="form-label">Description</label>
+        <InputTextArea @bind-Value="newTournament.Description" class="form-control" />
     </div>
 
-    <!-- Classement FFT -->
-    <div class="grid grid-cols-2 gap-4 mb-3">
-        <div>
-            <label class="block font-medium">Classement FFT minimum</label>
-            <InputText @bind-Value="newTournament.MinRankingFft" class="border rounded p-1 w-full" />
+    <!-- FFT ranking -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Minimum FFT ranking</label>
+            <InputText @bind-Value="newTournament.MinRankingFft" class="form-control" />
         </div>
-        <div>
-            <label class="block font-medium">Classement FFT maximum</label>
-            <InputText @bind-Value="newTournament.MaxRankingFft" class="border rounded p-1 w-full" />
-        </div>
-    </div>
-
-    <!-- Âge -->
-    <div class="grid grid-cols-2 gap-4 mb-3">
-        <div>
-            <label class="block font-medium">Âge minimum</label>
-            <InputNumber @bind-Value="newTournament.MinAge" class="border rounded p-1 w-full" />
-        </div>
-        <div>
-            <label class="block font-medium">Âge maximum</label>
-            <InputNumber @bind-Value="newTournament.MaxAge" class="border rounded p-1 w-full" />
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Maximum FFT ranking</label>
+            <InputText @bind-Value="newTournament.MaxRankingFft" class="form-control" />
         </div>
     </div>
 
-    <!-- Catégories et types -->
+    <!-- Age -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Minimum age</label>
+            <InputNumber @bind-Value="newTournament.MinAge" class="form-control" />
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Maximum age</label>
+            <InputNumber @bind-Value="newTournament.MaxAge" class="form-control" />
+        </div>
+    </div>
+
+    <!-- Categories and types -->
     <div class="mb-3">
-        <label class="block font-medium">Catégorie d'âge</label>
-        <InputSelect @bind-Value="newTournament.AgeCategory" class="border rounded p-1 w-full">
+        <label class="form-label">Age category</label>
+        <InputSelect @bind-Value="newTournament.AgeCategory" class="form-select">
             @foreach (var value in Enum.GetValues<AgeCategory>())
             {
                 <option value="@value">@value</option>
@@ -74,8 +80,8 @@
     </div>
 
     <div class="mb-3">
-        <label class="block font-medium">Type</label>
-        <InputSelect @bind-Value="newTournament.Type" class="border rounded p-1 w-full">
+        <label class="form-label">Type</label>
+        <InputSelect @bind-Value="newTournament.Type" class="form-select">
             @foreach (var value in Enum.GetValues<TournamentType>())
             {
                 <option value="@value">@value</option>
@@ -84,8 +90,8 @@
     </div>
 
     <div class="mb-3">
-        <label class="block font-medium">Sous-type</label>
-        <InputSelect @bind-Value="newTournament.SubType" class="border rounded p-1 w-full">
+        <label class="form-label">Subtype</label>
+        <InputSelect @bind-Value="newTournament.SubType" class="form-select">
             @foreach (var value in Enum.GetValues<TournamentSubType>())
             {
                 <option value="@value">@value</option>
@@ -93,10 +99,10 @@
         </InputSelect>
     </div>
 
-    <!-- Niveau de balle -->
+    <!-- Ball level -->
     <div class="mb-3">
-        <label class="block font-medium">Niveau de balle</label>
-        <InputSelect @bind-Value="newTournament.BallLevel" class="border rounded p-1 w-full">
+        <label class="form-label">Ball level</label>
+        <InputSelect @bind-Value="newTournament.BallLevel" class="form-select">
             @foreach (var value in Enum.GetValues<BallLevel>())
             {
                 <option value="@value">@value</option>
@@ -106,8 +112,8 @@
 
     <!-- Surface -->
     <div class="mb-3">
-        <label class="block font-medium">Surface</label>
-        <InputSelect @bind-Value="newTournament.Surface" class="border rounded p-1 w-full">
+        <label class="form-label">Surface</label>
+        <InputSelect @bind-Value="newTournament.Surface" class="form-select">
             @foreach (var value in Enum.GetValues<CourtSurface>())
             {
                 <option value="@value">@value</option>
@@ -117,8 +123,8 @@
 
     <!-- Conditions -->
     <div class="mb-3">
-        <label class="block font-medium">Conditions de jeu</label>
-        <InputSelect @bind-Value="newTournament.Condition" class="border rounded p-1 w-full">
+        <label class="form-label">Playing condition</label>
+        <InputSelect @bind-Value="newTournament.Condition" class="form-select">
             @foreach (var value in Enum.GetValues<PlayingCondition>())
             {
                 <option value="@value">@value</option>
@@ -127,22 +133,22 @@
     </div>
 
     <!-- Prize Money -->
-    <div class="grid grid-cols-2 gap-4 mb-3">
-        <div>
-            <label class="block font-medium">Dotation (€)</label>
-            <InputNumber @bind-Value="newTournament.PrizeMoney" class="border rounded p-1 w-full" />
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Prize money</label>
+            <InputNumber @bind-Value="newTournament.PrizeMoney" class="form-control" />
         </div>
-        <div>
-            <label class="block font-medium">Devise</label>
-            <InputText @bind-Value="newTournament.PrizeMoneyCurrency" class="border rounded p-1 w-full" />
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Currency</label>
+            <InputText @bind-Value="newTournament.PrizeMoneyCurrency" class="form-control" />
         </div>
     </div>
 
-    <!-- Format de match -->
+    <!-- Match format -->
     <div class="mb-3">
-        <label class="block font-medium">Format de match</label>
-        <InputSelect @bind-Value="newTournament.MatchFormatId" class="border rounded p-1 w-full">
-            <option value="">-- Sélectionner --</option>
+        <label class="form-label">Match format</label>
+        <InputSelect @bind-Value="newTournament.MatchFormatId" class="form-select">
+            <option value="0">Select a format</option>
             @foreach (var format in matchFormats)
             {
                 <option value="@format.Id">@format.Name - @format.Application - @format.SetsToWin sets - @format.GamesPerSet games</option>
@@ -150,12 +156,22 @@
         </InputSelect>
     </div>
 
-    <Button type="submit" class="mt-2">Créer</Button>
+    <button type="submit" class="btn btn-primary me-2" disabled="@isSubmitting">
+        @(isSubmitting ? "Creating..." : "Create Tournament")
+    </button>
+    <button type="button" class="btn btn-secondary" disabled="@isSubmitting" @onclick="Cancel">Cancel</button>
 </EditForm>
 
 @code {
-    private CreateTournamentRequest newTournament = new();
+    private CreateTournamentRequest newTournament = new()
+    {
+        StartDate = new DateTimeOffset(DateTime.Today),
+        EndDate = new DateTimeOffset(DateTime.Today.AddDays(1)),
+        PrizeMoneyCurrency = "EUR"
+    };
     private List<MatchFormat> matchFormats = new();
+    private string? errorMessage;
+    private bool isSubmitting;
 
     protected override async Task OnInitializedAsync()
     {
@@ -164,7 +180,48 @@
 
     private async Task HandleCreateTournament()
     {
-        await TennisApiClient.TournamentsPOSTAsync(newTournament);
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(newTournament.Name))
+        {
+            errorMessage = "Tournament name is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newTournament.Location))
+        {
+            errorMessage = "Tournament location is required.";
+            return;
+        }
+
+        if (newTournament.EndDate < newTournament.StartDate)
+        {
+            errorMessage = "End date must be after start date.";
+            return;
+        }
+
+        if (newTournament.MatchFormatId <= 0)
+        {
+            errorMessage = "Select a match format.";
+            return;
+        }
+
+        isSubmitting = true;
+
+        try
+        {
+            await TennisApiClient.TournamentsPOSTAsync(newTournament);
+            Navigation.NavigateTo("/tournaments");
+        }
+        catch (Exception ex)
+        {
+            isSubmitting = false;
+            errorMessage = $"Unable to create tournament: {ex.Message}";
+        }
+    }
+
+    private void Cancel()
+    {
         Navigation.NavigateTo("/tournaments");
     }
 }

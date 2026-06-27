@@ -1,4 +1,5 @@
 @page "/matches/create/{TournamentId:guid}"
+@rendermode InteractiveServer
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 @using TennisScoreWebApp.Components
 @inject ITennisApiClient TennisApiClient
@@ -12,9 +13,14 @@
 }
 else
 {
-    <EditForm EditContext="editContext" OnValidSubmit="HandleValidSubmit" FormName="CreateMatchForm">
+    <EditForm EditContext="editContext" OnSubmit="HandleSubmit" FormName="CreateMatchForm">
         <DataAnnotationsValidator />
         <ValidationSummary />
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">@errorMessage</div>
+        }
 
         <div class="mb-3">
             <label class="form-label">Tournament</label>
@@ -57,19 +63,20 @@ else
     [Parameter] public Guid TournamentId { get; set; }
 
     private TournamentDto? tournament;
-    private CreateMatchRequest match = new();
+    private CreateMatchRequest match = new() { BestOfSets = 3 };
     private EditContext? editContext;
 
     private PlayerLightDto? player1Selected;
     private PlayerLightDto? player2Selected;
     private DateTime matchDate = DateTime.Today;
     private TimeSpan matchTime = DateTime.Now.TimeOfDay;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         tournament = await TennisApiClient.TournamentsGETAsync(TournamentId);
 
-        match.TournamentId = TournamentId;
+        ApplyTournamentDefaults();
         matchDate = DateTime.Today;
         matchTime = DateTime.Now.TimeOfDay;
 
@@ -96,15 +103,45 @@ else
         return Task.CompletedTask;
     }
 
-    private async Task HandleValidSubmit()
+    private async Task HandleSubmit(EditContext context)
     {
-        if (tournament?.MatchFormat != null)
+        errorMessage = null;
+        ApplyTournamentDefaults();
+
+        if (!context.Validate())
         {
-            match.BestOfSets = tournament.MatchFormat.SetsToWin;
+            return;
         }
+
+        if (player1Selected is null || player2Selected is null)
+        {
+            errorMessage = "Select both players.";
+            return;
+        }
+
+        if (player1Selected.Id == player2Selected.Id)
+        {
+            errorMessage = "A match needs two different players.";
+            return;
+        }
+
+        if (match.ServingPlayer == Guid.Empty)
+        {
+            errorMessage = "Select the first server.";
+            return;
+        }
+
         match.MatchDate = matchDate.Date + matchTime;
         await TennisApiClient.MatchesPOSTAsync(match);
         Navigation.NavigateTo($"/tournaments/{TournamentId}");
+    }
+
+    private void ApplyTournamentDefaults()
+    {
+        var setsToWin = tournament?.MatchFormat?.SetsToWin ?? 3;
+        var bestOfSets = (setsToWin * 2) - 1;
+        match.BestOfSets = bestOfSets is >= 1 and <= 5 ? bestOfSets : 3;
+        match.TournamentId = TournamentId;
     }
 
     private void Cancel()

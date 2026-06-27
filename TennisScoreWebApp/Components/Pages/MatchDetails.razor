@@ -7,28 +7,49 @@
 
 @rendermode InteractiveServer
 
-<h2 class="mb-4">Détails du Match</h2>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="mb-0">Match details</h2>
+    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
+        Back to tournament
+    </button>
+</div>
 
 @if (Match == null)
 {
-    <p><em>Chargement en cours...</em></p>
+    <p><em>Loading...</em></p>
 }
 else
 {
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <h3 class="card-title mb-3">@Match.Player1.LastName vs @Match.Player2.LastName</h3>
-            <p class="card-text mb-2"><strong>Tournoi :</strong> @Match.TournamentName</p>
-            <p class="card-text mb-3"><strong>Date :</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
+            <p class="card-text mb-2"><strong>Tournament:</strong> @Match.TournamentName</p>
+            <p class="card-text mb-3"><strong>Date:</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
+
+            @if (IsMatchFinished)
+            {
+                <div class="alert alert-success d-flex align-items-center justify-content-between gap-3 flex-wrap" role="status">
+                    <div>
+                        <strong>Match finished</strong>
+                        <div>Winner: @WinnerName</div>
+                    </div>
+                    <div class="fw-semibold">
+                        Final score: @MatchScore
+                    </div>
+                </div>
+            }
             
-            <h5>Score par set</h5>
+            <h5>Set score</h5>
             @if (Match.Sets != null && Match.Sets.Any())
             {
                 <table class="table table-striped table-bordered w-auto text-center align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Joueur</th>
-                            <th>Points</th>
+                            <th>Player</th>
+                            @if (!IsMatchFinished)
+                            {
+                                <th>Points</th>
+                            }
                             @for (int i = 0; i < Match.Sets.Count; i++)
                             {
                                 <th>Set @(i + 1)</th>
@@ -41,17 +62,20 @@ else
                                 @Match.Player1.LastName
                                 @if (@Match.ServingPlayerId == @Match.Player1.Id)
                                 {
-                                    <span title="Au service" class="ms-1">🎾</span>
+                                    <span title="Serving" class="ms-1">🎾</span>
                                 }
                             </td>
-                            <td>
-                                <span class="badge bg-warning text-dark fs-6 px-3">
-                                    @(Match.Player1.CurrentScore ?? "0")
-                                </span>
-                            </td>
+                            @if (!IsMatchFinished)
+                            {
+                                <td>
+                                    <span class="badge bg-warning text-dark fs-6 px-3">
+                                        @(Match.Player1.CurrentScore ?? "0")
+                                    </span>
+                                </td>
+                            }
                             @foreach (var set in Match.Sets)
                             {
-                                <td>@set.Player1Games</td>
+                                <td>@GetSetCellScore(set, Match.Player1.Id)</td>
                             }
                         </tr>
                         <tr>
@@ -59,17 +83,20 @@ else
                                 @Match.Player2.LastName
                                 @if (@Match.ServingPlayerId == @Match.Player2.Id)
                                 {
-                                    <span title="Au service" class="ms-1">🎾</span>
+                                    <span title="Serving" class="ms-1">🎾</span>
                                 }
                             </td>
-                            <td>
-                                <span class="badge bg-warning text-dark fs-6 px-3">
-                                    @(Match.Player2.CurrentScore ?? "0")
-                                </span>
-                            </td>
+                            @if (!IsMatchFinished)
+                            {
+                                <td>
+                                    <span class="badge bg-warning text-dark fs-6 px-3">
+                                        @(Match.Player2.CurrentScore ?? "0")
+                                    </span>
+                                </td>
+                            }
                             @foreach (var set in Match.Sets)
                             {
-                                <td>@set.Player2Games</td>
+                                <td>@GetSetCellScore(set, Match.Player2.Id)</td>
                             }
                         </tr>
                     </tbody>
@@ -80,30 +107,129 @@ else
             {
                 <p>Match not started yet.</p>
             }
-
-            <button type="button" class="btn btn-secondary mt-3" @onclick="GoBack">Back to tournament page</button>
         </div>
     </div>
-        <!-- Add a point -->
-    <h4>Ajouter un point</h4>
-    <div class="d-flex flex-wrap gap-2 mb-4">
-        @foreach (var player in new[] { Match.Player1, Match.Player2 })
-        {
-            @foreach (PointType pt in Enum.GetValues(typeof(PointType)))
-            {
-                @if (pt != PointType.Unknown)
-                {
-                    <button class="btn @GetPointClass(pt)"
-                            @onclick="(() => AddPoint(player.Id, pt))">
-                        @player.LastName - @pt
-                    </button>
-                }
+
+    <style>
+        .point-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .5rem;
+        }
+
+        .point-action-button {
+            min-height: 2.5rem;
+            text-align: left;
+        }
+
+        .point-action-section + .point-action-section {
+            border-top: 1px solid var(--bs-border-color);
+            margin-top: 1rem;
+            padding-top: 1rem;
+        }
+
+        .point-action-section-title {
+            font-size: .8rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+
+        @@media (max-width: 576px) {
+            .point-actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .point-action-button {
+                text-align: center;
             }
         }
-    </div>
+    </style>
+
+    @if (IsMatchFinished)
+    {
+        <div class="alert alert-secondary" role="status">
+            Scoring is closed for this completed match.
+        </div>
+    }
+    else
+    {
+        <h4 class="mb-3">Add a point</h4>
+        <div class="row g-3 mb-4">
+            @foreach (var player in new[] { Match.Player1, Match.Player2 })
+            {
+                <div class="col-12 col-lg-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div>
+                                    <h5 class="mb-0">@GetPlayerName(player)</h5>
+                                    <small class="text-muted">Record an event by this player</small>
+                                </div>
+                                @if (Match.ServingPlayerId == player.Id)
+                                {
+                                    <span class="badge bg-light text-dark border" title="Serving">Serving</span>
+                                }
+                            </div>
+
+                            <div class="point-action-section">
+                                <div class="point-action-section-title text-success mb-2">
+                                    Point won by @GetPlayerName(player)
+                                </div>
+                                <div class="point-actions-grid">
+                                    @foreach (var pointType in PointWonActions)
+                                    {
+                                        <button type="button"
+                                                class="btn @GetPointClass(pointType) point-action-button"
+                                                disabled="@IsPointActionDisabled(player, pointType)"
+                                                title="@GetPointActionTitle(player, pointType)"
+                                                @onclick="(() => AddPoint(player.Id, pointType))">
+                                            @GetPointLabel(pointType)
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="point-action-section">
+                                <div class="point-action-section-title text-danger mb-2">
+                                    Error by @GetPlayerName(player), point to @GetPlayerName(GetOpponent(player))
+                                </div>
+                                <div class="point-actions-grid">
+                                    @foreach (var pointType in OpponentPointActions)
+                                    {
+                                        <button type="button"
+                                                class="btn @GetPointClass(pointType) point-action-button"
+                                                disabled="@IsPointActionDisabled(player, pointType)"
+                                                title="@GetPointActionTitle(player, pointType)"
+                                                @onclick="(() => AddPoint(GetOpponent(player).Id, pointType))">
+                                            @GetPointLabel(pointType)
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 }
 
 @code {
+    private static readonly PointType[] PointWonActions =
+    [
+        PointType.Ace,
+        PointType.Winner
+    ];
+
+    private static readonly PointType[] OpponentPointActions =
+    [
+        PointType.ForcedError,
+        PointType.UnforcedError,
+        PointType.DoubleFault,
+        PointType.TimeViolation
+    ];
+
     [Parameter] public Guid MatchId { get; set; }
     private MatchDetailsDto? Match { get; set; }
 
@@ -111,10 +237,10 @@ else
     {
         Match = await TennisApiClient.MatchesGETAsync(MatchId);
 
-        // Connexion au Hub
+        // Hub connection
         await HubService.StartAsync(matchId: MatchId);
 
-        // Abonnement aux updates
+        // Subscribe to updates
         HubService.OnMatchUpdated += UpdateMatch;
     }
 
@@ -128,28 +254,96 @@ else
                 Match.Player2.CurrentScore = updatedMatch.Player2.CurrentScore;
                 Match.Sets = updatedMatch.Sets;
                 Match.ServingPlayerId = updatedMatch.ServingPlayerId;
+                Match.EndTime = updatedMatch.EndTime;
+                Match.IsCompleted = updatedMatch.IsCompleted;
+                Match.Score = updatedMatch.Score;
+                Match.WinnerFirstName = updatedMatch.WinnerFirstName;
+                Match.WinnerLastName = updatedMatch.WinnerLastName;
                 StateHasChanged();
             }
         });
     }
 
+    private bool IsMatchFinished
+        => Match?.IsCompleted == true || Match?.EndTime != null || !string.IsNullOrWhiteSpace(WinnerName);
+
+    private string WinnerName
+        => $"{Match?.WinnerFirstName} {Match?.WinnerLastName}".Trim();
+
+    private string MatchScore
+        => !string.IsNullOrWhiteSpace(Match?.Score)
+            ? Match.Score
+            : Match?.Sets == null || !Match.Sets.Any()
+                ? "0-0"
+                : string.Join(" ", Match.Sets.Select(set => set.DisplayScore ?? $"{set.Player1Games}-{set.Player2Games}"));
+
+    private string GetSetCellScore(SetScoreDto set, Guid playerId)
+    {
+        var isPlayer1 = Match?.Player1.Id == playerId;
+        var games = isPlayer1 ? set.Player1Games : set.Player2Games;
+        var otherGames = isPlayer1 ? set.Player2Games : set.Player1Games;
+        var tieBreakPoints = isPlayer1 ? set.Player1TieBreakPoints : set.Player2TieBreakPoints;
+
+        if (set.IsSuperTieBreak && tieBreakPoints.HasValue)
+            return tieBreakPoints.Value.ToString();
+
+        if (set.IsTieBreak && games < otherGames && tieBreakPoints.HasValue)
+            return $"{games}({tieBreakPoints})";
+
+        return games.ToString();
+    }
+
+    private static string GetPlayerName(PlayerDto player)
+        => $"{player.FirstName} {player.LastName}".Trim();
+
+    private PlayerDto GetOpponent(PlayerDto player)
+        => Match?.Player1.Id == player.Id ? Match.Player2 : Match?.Player1 ?? player;
+
+    private bool IsServing(PlayerDto player)
+        => Match?.ServingPlayerId == player.Id;
+
+    private static bool IsServerOnlyPoint(PointType pointType)
+        => pointType is PointType.Ace or PointType.DoubleFault;
+
+    private bool IsPointActionDisabled(PlayerDto player, PointType pointType)
+        => IsServerOnlyPoint(pointType) && !IsServing(player);
+
+    private string GetPointActionTitle(PlayerDto player, PointType pointType)
+        => IsPointActionDisabled(player, pointType)
+            ? $"{GetPointLabel(pointType)} can only be recorded for the serving player."
+            : GetPointLabel(pointType);
+
+    private static string GetPointLabel(PointType pointType)
+        => pointType switch
+        {
+            PointType.Ace => "Ace",
+            PointType.DoubleFault => "Double fault",
+            PointType.Fault => "Fault",
+            PointType.Winner => "Winner",
+            PointType.UnforcedError => "Unforced error",
+            PointType.ForcedError => "Forced error",
+            PointType.Let => "Let",
+            PointType.TimeViolation => "Time violation",
+            _ => pointType.ToString()
+        };
+
     private string GetPointClass(PointType pt)
         => pt switch
         {
-            PointType.Ace => "btn-success",
-            PointType.DoubleFault => "btn-danger",
-            PointType.Fault => "btn-secondary",
-            PointType.Winner => "btn-primary",
-            PointType.UnforcedError => "btn-warning",
-            PointType.ForcedError => "btn-info",
-            PointType.Let => "btn-light",
-            PointType.TimeViolation => "btn-dark",
-            _ => "btn-secondary"
+            PointType.Ace => "btn-outline-success",
+            PointType.Winner => "btn-outline-primary",
+            PointType.ForcedError => "btn-outline-info",
+            PointType.UnforcedError => "btn-outline-warning",
+            PointType.DoubleFault => "btn-outline-danger",
+            PointType.Fault => "btn-outline-secondary",
+            PointType.Let => "btn-outline-secondary",
+            PointType.TimeViolation => "btn-outline-dark",
+            _ => "btn-outline-secondary"
         };
 
     private async Task AddPoint(Guid player, PointType pointType)
     {
-        if (Match == null) return;
+        if (Match == null || IsMatchFinished) return;
 
         var addPointRequest = new AddPointRequest
         {
@@ -158,11 +352,12 @@ else
             PointType = pointType
         };
 
-        // Appel API pour ajouter le point
+        // Add the point through the API
         await TennisApiClient.AddPointAsync(addPointRequest);
 
-        // Rafraîchir le match et diffuser via SignalR
+        // Refresh the match after SignalR propagation
         var updatedMatch = await TennisApiClient.MatchesGETAsync(Match.Id);
+        Match = updatedMatch;
     }
     private void GoBack()
     {

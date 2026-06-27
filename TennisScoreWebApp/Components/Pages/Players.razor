@@ -1,0 +1,117 @@
+@page "/players"
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@inject ITennisApiClient TennisApiClient
+@inject IJSRuntime JS
+
+@rendermode InteractiveServer
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Players</h3>
+    <NavLink href="/players/create" class="btn btn-primary btn-sm">Create Player</NavLink>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+@if (players == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!players.Any())
+{
+    <p>No player found.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var player in players)
+                {
+                    <tr>
+                        <td>@player.FirstName @player.LastName</td>
+                        <td>@(player.Age?.ToString() ?? "-")</td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-outline-danger btn-sm"
+                                    disabled="@isDeleting"
+                                    @onclick="() => DeletePlayer(player)">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<PlayerLightDto>? players;
+    private string? errorMessage;
+    private bool isDeleting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPlayers();
+    }
+
+    private async Task LoadPlayers()
+    {
+        try
+        {
+            players = (await TennisApiClient.PlayersAllAsync()).OrderBy(p => p.LastName).ThenBy(p => p.FirstName).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to load players: {ex.Message}";
+            players = new List<PlayerLightDto>();
+        }
+    }
+
+    private async Task DeletePlayer(PlayerLightDto player)
+    {
+        errorMessage = null;
+
+        var confirmed = await JS.InvokeAsync<bool>(
+            "confirm",
+            $"Delete player {player.FirstName} {player.LastName}?");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        isDeleting = true;
+
+        try
+        {
+            var deleted = await TennisApiClient.PlayersDELETEAsync(player.Id);
+            if (deleted)
+            {
+                players?.Remove(player);
+            }
+            else
+            {
+                errorMessage = "The player could not be deleted.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to delete player: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+}

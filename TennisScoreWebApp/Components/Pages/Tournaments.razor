@@ -3,33 +3,51 @@
 
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 @inject ITennisApiClient TennisApiClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 
-<h3>Tournaments</h3>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Tournaments</h3>
+    <div class="form-check form-switch">
+        <InputCheckbox class="form-check-input" @bind-Value="showAllTournaments" />
+        <label class="form-check-label">Show all</label>
+    </div>
+</div>
 
 <!-- link to create a new tournament -->
 <div class="mb-4">
-    <NavLink href="/tournaments/create" class="text-sm text-gray-500 hover:text-gray-700 hover:underline">
-        ➕ New Tournament
+    <NavLink href="/tournaments/create" class="btn btn-primary btn-sm">
+        New Tournament
     </NavLink>
 </div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
 
 @if (tournaments == null)
 {
     <p><em>Loading...</em></p>
 }
-else if (!tournaments.Any())
+else if (!VisibleTournaments.Any())
 {
     <p>No tournament found.</p>
 }
 else
 {
      <div class="row">
-        @foreach (var t in tournaments)
+        @foreach (var t in VisibleTournaments)
         {
             <div class="col-md-4 mb-4">
-                <div class="card shadow-sm h-100">
+                <div class="card shadow-sm h-100"
+                     role="link"
+                     tabindex="0"
+                     style="cursor: pointer;"
+                     @onclick="() => GoToTournament(t.Id)"
+                     @onkeydown="args => HandleCardKeyDown(args, t.Id)">
                     <div class="card-body">
                         <h5 class="card-title">@t.Name</h5>
                         <h6 class="card-subtitle mb-2 text-muted">@t.Location</h6>
@@ -41,9 +59,13 @@ else
                                 @t.StartDate.ToString("dd MMM yyyy") - @t.EndDate.ToString("dd MMM yyyy")
                             </small>
                         </p>
-                        <a href="@($"/tournaments/{t.Id}")" class="btn btn-primary btn-sm">
-                            See more
-                        </a>
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm ms-2"
+                                disabled="@isDeleting"
+                                @onclick:stopPropagation="true"
+                                @onclick="() => DeleteTournament(t)">
+                            Delete
+                        </button>
                     </div>
                 </div>
             </div>
@@ -53,18 +75,82 @@ else
 
 
 @code {
-    private IEnumerable<TournamentDto>? tournaments;
+    private List<TournamentDto>? tournaments;
+    private bool showAllTournaments;
+    private bool isDeleting;
+    private string? errorMessage;
+
+    private IEnumerable<TournamentDto> VisibleTournaments =>
+        showAllTournaments
+            ? tournaments ?? Enumerable.Empty<TournamentDto>()
+            : (tournaments ?? Enumerable.Empty<TournamentDto>()).Where(IsInProgress);
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            tournaments = await TennisApiClient.TournamentsAllAsync();
+            tournaments = (await TennisApiClient.TournamentsAllAsync()).ToList();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error when retrieving tournaments : {ex.Message}");
             tournaments = new List<TournamentDto>();
+        }
+    }
+
+    private static bool IsInProgress(TournamentDto tournament)
+    {
+        var today = DateTime.Today;
+        return tournament.StartDate.Date <= today && tournament.EndDate.Date >= today;
+    }
+
+    private void GoToTournament(Guid tournamentId)
+    {
+        Navigation.NavigateTo($"/tournaments/{tournamentId}");
+    }
+
+    private void HandleCardKeyDown(KeyboardEventArgs args, Guid tournamentId)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            GoToTournament(tournamentId);
+        }
+    }
+
+    private async Task DeleteTournament(TournamentDto tournament)
+    {
+        errorMessage = null;
+
+        var confirmed = await JS.InvokeAsync<bool>(
+            "confirm",
+            $"Delete tournament {tournament.Name}?");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        isDeleting = true;
+
+        try
+        {
+            var deleted = await TennisApiClient.TournamentsDELETEAsync(tournament.Id);
+            if (deleted)
+            {
+                tournaments?.Remove(tournament);
+            }
+            else
+            {
+                errorMessage = "The tournament could not be deleted.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to delete tournament: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
         }
     }
 }
