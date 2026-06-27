@@ -22,6 +22,7 @@ jobs:
 
       # 2. Log in to Docker Hub
       - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DH_USER }}
@@ -34,19 +35,35 @@ jobs:
           echo "sha_short=${GITHUB_SHA::7}" >> $GITHUB_ENV
           echo "ref_name=${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
-      # 4. Build et push
-      - name: Build and Push Docker image
-        run: |
-          IMAGE_NAME=${{ secrets.DH_USER }}/tennisscore-webapp
-          
-          # Tag latest + commit
-          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ env.sha_short }} .
-          
-          docker push $IMAGE_NAME:latest
-          docker push $IMAGE_NAME:${{ env.sha_short }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-          # Si c’est une release → on tag aussi avec la version
-          if [ "${{ github.event_name }}" = "release" ]; then
-            docker tag $IMAGE_NAME:latest $IMAGE_NAME:${{ env.ref_name }}
-            docker push $IMAGE_NAME:${{ env.ref_name }}
-          fi
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for pull request
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          tags: 1fini/tennisscore-webapp:pr-${{ env.sha_short }}
+
+      - name: Build and push multi-arch Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DH_USER }}/tennisscore-webapp:latest
+            ${{ secrets.DH_USER }}/tennisscore-webapp:${{ env.sha_short }}
+
+      - name: Tag release image
+        if: github.event_name == 'release'
+        run: |
+          docker buildx imagetools create \
+            -t ${{ secrets.DH_USER }}/tennisscore-webapp:${{ env.ref_name }} \
+            ${{ secrets.DH_USER }}/tennisscore-webapp:${{ env.sha_short }}
