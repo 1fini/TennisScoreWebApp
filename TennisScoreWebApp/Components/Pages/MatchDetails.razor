@@ -100,6 +100,19 @@ else
             text-align: left;
         }
 
+        .point-action-section + .point-action-section {
+            border-top: 1px solid var(--bs-border-color);
+            margin-top: 1rem;
+            padding-top: 1rem;
+        }
+
+        .point-action-section-title {
+            font-size: .8rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+
         @@media (max-width: 576px) {
             .point-actions-grid {
                 grid-template-columns: 1fr;
@@ -121,22 +134,44 @@ else
                         <div class="d-flex align-items-center justify-content-between mb-3">
                             <div>
                                 <h5 class="mb-0">@GetPlayerName(player)</h5>
-                                <small class="text-muted">Award point to this player</small>
+                                <small class="text-muted">Record an event by this player</small>
                             </div>
                             @if (Match.ServingPlayerId == player.Id)
                             {
                                 <span class="badge bg-light text-dark border" title="Serving">Serving</span>
                             }
                         </div>
-                        <div class="point-actions-grid">
-                            @foreach (var pointType in PointActions)
-                            {
-                                <button type="button"
-                                        class="btn @GetPointClass(pointType) point-action-button"
-                                        @onclick="(() => AddPoint(player.Id, pointType))">
-                                    @GetPointLabel(pointType)
-                                </button>
-                            }
+
+                        <div class="point-action-section">
+                            <div class="point-action-section-title text-success mb-2">
+                                Point won by @GetPlayerName(player)
+                            </div>
+                            <div class="point-actions-grid">
+                                @foreach (var pointType in PointWonActions)
+                                {
+                                    <button type="button"
+                                            class="btn @GetPointClass(pointType) point-action-button"
+                                            @onclick="(() => AddPoint(player.Id, pointType))">
+                                        @GetPointLabel(pointType)
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="point-action-section">
+                            <div class="point-action-section-title text-danger mb-2">
+                                Error by @GetPlayerName(player), point to @GetPlayerName(GetOpponent(player))
+                            </div>
+                            <div class="point-actions-grid">
+                                @foreach (var pointType in OpponentPointActions)
+                                {
+                                    <button type="button"
+                                            class="btn @GetPointClass(pointType) point-action-button"
+                                            @onclick="(() => AddPoint(GetOpponent(player).Id, pointType))">
+                                        @GetPointLabel(pointType)
+                                    </button>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -146,15 +181,17 @@ else
 }
 
 @code {
-    private static readonly PointType[] PointActions =
+    private static readonly PointType[] PointWonActions =
     [
         PointType.Ace,
-        PointType.Winner,
+        PointType.Winner
+    ];
+
+    private static readonly PointType[] OpponentPointActions =
+    [
         PointType.ForcedError,
         PointType.UnforcedError,
         PointType.DoubleFault,
-        PointType.Fault,
-        PointType.Let,
         PointType.TimeViolation
     ];
 
@@ -189,6 +226,9 @@ else
 
     private static string GetPlayerName(PlayerDto player)
         => $"{player.FirstName} {player.LastName}".Trim();
+
+    private PlayerDto GetOpponent(PlayerDto player)
+        => Match?.Player1.Id == player.Id ? Match.Player2 : Match?.Player1 ?? player;
 
     private static string GetPointLabel(PointType pointType)
         => pointType switch
