@@ -1,4 +1,5 @@
 @page "/tournaments/create"
+@rendermode InteractiveServer
 @using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
 @inject ITennisApiClient TennisApiClient
 @inject NavigationManager Navigation
@@ -214,11 +215,8 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Unable to create tournament: {ex.Message}";
-        }
-        finally
-        {
             isSubmitting = false;
+            errorMessage = $"Unable to create tournament: {ex.Message}";
         }
     }
 
