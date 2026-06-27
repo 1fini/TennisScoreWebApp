@@ -139,7 +139,8 @@ else
     private void ApplyTournamentDefaults()
     {
         var setsToWin = tournament?.MatchFormat?.SetsToWin ?? 3;
-        match.BestOfSets = setsToWin is >= 1 and <= 5 ? setsToWin : 3;
+        var bestOfSets = (setsToWin * 2) - 1;
+        match.BestOfSets = bestOfSets is >= 1 and <= 5 ? bestOfSets : 3;
         match.TournamentId = TournamentId;
     }
 
