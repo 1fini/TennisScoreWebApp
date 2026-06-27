@@ -151,6 +151,7 @@ TRAEFIK_HOST=tennis.example.com
 TRAEFIK_ACME_EMAIL=admin@example.com
 TRAEFIK_CERT_RESOLVER=letsencrypt
 TRAEFIK_LOG_LEVEL=INFO
+TRAEFIK_BASIC_AUTH_USERS=tmc:$$2y$$05$$yHSYiX0E7cIzD5vD3GTrFeL7Q4aOA7eomJHjfyZGgpdEnsRn9trP2
 
 API_IMAGE=1fini/tennisscoreapi:latest
 MIGRATIONS_IMAGE=1fini/tennisscoreapi-migrations:latest
@@ -163,7 +164,22 @@ DB_USER=tennisscore
 DB_PASSWORD=change-me
 ```
 
-Start the stack:
+Deploy the stack:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Deploy without running database migrations:
+
+```bash
+./deploy.sh --skip-migration
+```
+
+The deployment script validates the compose configuration, pulls images, runs migrations unless skipped, starts the stack, prunes unused images, and attempts to restart the stack if a deployment step fails.
+
+Start the stack manually:
 
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
@@ -176,6 +192,14 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml --profile migrati
 ```
 
 The migration service is behind the `migrations` profile, so it does not run during a normal `up -d`. It waits for the PostgreSQL health check before applying migrations.
+
+The WebApp is protected by Traefik Basic Auth. Generate a replacement user hash with:
+
+```bash
+htpasswd -nbB tmc 'your-password'
+```
+
+When storing the hash in `.env.prod`, replace each `$` printed by `htpasswd` with `$$` so Docker Compose does not treat hash fragments as variables.
 
 Inspect logs:
 
@@ -220,6 +244,7 @@ This makes the stack suitable for Raspberry Pi deployments.
 | `MIGRATIONS_IMAGE` | EF Core migration bundle image | `1fini/tennisscoreapi-migrations:latest` |
 | `TRAEFIK_HOST` | Public hostname served by Traefik | `tennis.example.com` |
 | `TRAEFIK_ACME_EMAIL` | Email used for Let's Encrypt certificates | `admin@example.com` |
+| `TRAEFIK_BASIC_AUTH_USERS` | Traefik Basic Auth users in htpasswd format, with `$` escaped as `$$` in `.env.prod` | `tmc:$$2y$$...` |
 | `DB_NAME` | PostgreSQL database name | `tennisscore` |
 | `DB_USER` | PostgreSQL user | `tennisscore` |
 | `DB_PASSWORD` | PostgreSQL password | `change-me` |
@@ -231,11 +256,12 @@ This makes the stack suitable for Raspberry Pi deployments.
 - The API is not exposed publicly by the compose file.
 - Database migrations are explicit and run through the `migrations` compose profile.
 - PostgreSQL has a Docker health check used by the migration container.
+- The WebApp is protected at the reverse proxy layer with Traefik Basic Auth.
 
 ## Roadmap
 
 - Add health checks for WebApp and API.
-- Add authentication for MVP users.
+- Replace Basic Auth with application-level authentication when user onboarding needs it.
 - Harden production headers and forwarded header handling behind Traefik.
 - Improve observability with structured logs and deployment documentation.
 

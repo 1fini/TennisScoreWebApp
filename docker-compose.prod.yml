@@ -102,6 +102,8 @@ services:
       - traefik.http.routers.tennisscore-webapp.tls=true
       - traefik.http.routers.tennisscore-webapp.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
       - traefik.http.services.tennisscore-webapp.loadbalancer.server.port=8080
+      - traefik.http.middlewares.tennisscore-auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS:?TRAEFIK_BASIC_AUTH_USERS is required}
+      - traefik.http.routers.tennisscore-webapp.middlewares=tennisscore-auth
     networks:
       - tennisscore-internal
       - traefik
