@@ -87,26 +87,77 @@ else
             }
         </div>
     </div>
-        <!-- Add a point -->
-    <h4>Add a point</h4>
-    <div class="d-flex flex-wrap gap-2 mb-4">
+
+    <style>
+        .point-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .5rem;
+        }
+
+        .point-action-button {
+            min-height: 2.5rem;
+            text-align: left;
+        }
+
+        @@media (max-width: 576px) {
+            .point-actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .point-action-button {
+                text-align: center;
+            }
+        }
+    </style>
+
+    <h4 class="mb-3">Add a point</h4>
+    <div class="row g-3 mb-4">
         @foreach (var player in new[] { Match.Player1, Match.Player2 })
         {
-            @foreach (PointType pt in Enum.GetValues(typeof(PointType)))
-            {
-                @if (pt != PointType.Unknown)
-                {
-                    <button class="btn @GetPointClass(pt)"
-                            @onclick="(() => AddPoint(player.Id, pt))">
-                        @player.LastName - @pt
-                    </button>
-                }
-            }
+            <div class="col-12 col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h5 class="mb-0">@GetPlayerName(player)</h5>
+                                <small class="text-muted">Award point to this player</small>
+                            </div>
+                            @if (Match.ServingPlayerId == player.Id)
+                            {
+                                <span class="badge bg-light text-dark border" title="Serving">Serving</span>
+                            }
+                        </div>
+                        <div class="point-actions-grid">
+                            @foreach (var pointType in PointActions)
+                            {
+                                <button type="button"
+                                        class="btn @GetPointClass(pointType) point-action-button"
+                                        @onclick="(() => AddPoint(player.Id, pointType))">
+                                    @GetPointLabel(pointType)
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
         }
     </div>
 }
 
 @code {
+    private static readonly PointType[] PointActions =
+    [
+        PointType.Ace,
+        PointType.Winner,
+        PointType.ForcedError,
+        PointType.UnforcedError,
+        PointType.DoubleFault,
+        PointType.Fault,
+        PointType.Let,
+        PointType.TimeViolation
+    ];
+
     [Parameter] public Guid MatchId { get; set; }
     private MatchDetailsDto? Match { get; set; }
 
@@ -136,18 +187,35 @@ else
         });
     }
 
+    private static string GetPlayerName(PlayerDto player)
+        => $"{player.FirstName} {player.LastName}".Trim();
+
+    private static string GetPointLabel(PointType pointType)
+        => pointType switch
+        {
+            PointType.Ace => "Ace",
+            PointType.DoubleFault => "Double fault",
+            PointType.Fault => "Fault",
+            PointType.Winner => "Winner",
+            PointType.UnforcedError => "Unforced error",
+            PointType.ForcedError => "Forced error",
+            PointType.Let => "Let",
+            PointType.TimeViolation => "Time violation",
+            _ => pointType.ToString()
+        };
+
     private string GetPointClass(PointType pt)
         => pt switch
         {
-            PointType.Ace => "btn-success",
-            PointType.DoubleFault => "btn-danger",
-            PointType.Fault => "btn-secondary",
-            PointType.Winner => "btn-primary",
-            PointType.UnforcedError => "btn-warning",
-            PointType.ForcedError => "btn-info",
-            PointType.Let => "btn-light",
-            PointType.TimeViolation => "btn-dark",
-            _ => "btn-secondary"
+            PointType.Ace => "btn-outline-success",
+            PointType.Winner => "btn-outline-primary",
+            PointType.ForcedError => "btn-outline-info",
+            PointType.UnforcedError => "btn-outline-warning",
+            PointType.DoubleFault => "btn-outline-danger",
+            PointType.Fault => "btn-outline-secondary",
+            PointType.Let => "btn-outline-secondary",
+            PointType.TimeViolation => "btn-outline-dark",
+            _ => "btn-outline-secondary"
         };
 
     private async Task AddPoint(Guid player, PointType pointType)
