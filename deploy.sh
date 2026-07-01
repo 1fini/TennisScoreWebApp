@@ -52,7 +52,7 @@ on_error() {
   echo "Deployment failed with exit code $exit_code." >&2
   echo "Attempting to restart existing containers without recreating the stack..." >&2
 
-  if compose restart traefik api webapp; then
+  if compose restart postgres api webapp; then
     echo "Existing containers restarted. Current status:" >&2
     compose ps >&2 || true
   elif compose up -d --no-recreate; then

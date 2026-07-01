@@ -5,6 +5,8 @@
 @inject ITennisApiClient TennisApiClient
 @inject HubService HubService
 
+@implements IAsyncDisposable
+
 @rendermode InteractiveServer
 
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -365,5 +367,11 @@ else
             Navigation.NavigateTo($"/tournaments/{Match.TournamentId}");
         else
             Navigation.NavigateTo("/tournaments");
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        HubService.OnMatchUpdated -= UpdateMatch;
+        return ValueTask.CompletedTask;
     }
 }

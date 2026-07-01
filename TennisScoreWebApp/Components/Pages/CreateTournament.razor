@@ -211,7 +211,7 @@
         try
         {
             await TennisApiClient.TournamentsPOSTAsync(newTournament);
-            Navigation.NavigateTo("/tournaments");
+            Navigation.NavigateTo("/tournaments", forceLoad: true);
         }
         catch (Exception ex)
         {

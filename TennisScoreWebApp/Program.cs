@@ -13,6 +13,9 @@ builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnCh
 
 var scoreApiUrl = builder.Configuration["SCORE_API_URL"] ?? "https://localhost:7277/";
 var scoreHubUrl = builder.Configuration["SCOREHUB_URL"] ?? "http://localhost:5227/scoreHub";
+var enableHttpsRedirection =
+    bool.TryParse(builder.Configuration["ENABLE_HTTPS_REDIRECTION"], out var parsedEnableHttpsRedirection)
+    && parsedEnableHttpsRedirection;
 
 // Injection du HttpClient pour TennisApiClient
 builder.Services.AddHttpClient<ITennisApiClient, TennisApiClient>(client =>
@@ -20,7 +23,7 @@ builder.Services.AddHttpClient<ITennisApiClient, TennisApiClient>(client =>
     client.BaseAddress = new Uri(scoreApiUrl);
 });
 
-builder.Services.AddSingleton(new HubService(new Uri(scoreHubUrl))); 
+builder.Services.AddScoped(_ => new HubService(new Uri(scoreHubUrl)));
 
 var app = builder.Build();
 
@@ -28,11 +31,17 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+
+    if (enableHttpsRedirection)
+    {
+        app.UseHsts();
+    }
 }
 
-app.UseHttpsRedirection();
+if (enableHttpsRedirection)
+{
+    app.UseHttpsRedirection();
+}
 
 
 app.UseAntiforgery();
