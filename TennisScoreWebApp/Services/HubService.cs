@@ -7,41 +7,100 @@ public class HubService(Uri uri) : IAsyncDisposable
 {
     private HubConnection? _hubConnection;
     private readonly Uri _hubUri = uri;
+    private readonly HashSet<Guid> _matchGroups = [];
+    private readonly HashSet<Guid> _tournamentGroups = [];
+    private readonly SemaphoreSlim _connectionLock = new(1, 1);
 
     public event Action<MatchDetailsDto>? OnMatchUpdated;
-    //public event Action<MatchDetailsDto>? OnPointReceived;
 
     public async Task StartAsync(Guid? matchId = null, Guid? tournamentId = null)
     {
-        if (_hubConnection != null) return;
-
-        // Add parameters to the URL if matchId or tournamentId are provided
-        var hubUrl = _hubUri.ToString();
-        if (matchId.HasValue || tournamentId.HasValue)
+        if (matchId.HasValue)
         {
-            hubUrl += "?";
-            if (matchId.HasValue) hubUrl += $"matchId={matchId}&";
-            if (tournamentId.HasValue) hubUrl += $"tournamentId={tournamentId}&";
-            hubUrl = hubUrl.TrimEnd('&');
+            _matchGroups.Add(matchId.Value);
         }
 
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl(hubUrl)
+        if (tournamentId.HasValue)
+        {
+            _tournamentGroups.Add(tournamentId.Value);
+        }
+
+        await EnsureConnectedAsync();
+
+        if (matchId.HasValue)
+        {
+            await JoinMatchGroupAsync(matchId.Value);
+        }
+
+        if (tournamentId.HasValue)
+        {
+            await JoinTournamentGroupAsync(tournamentId.Value);
+        }
+    }
+
+    private async Task EnsureConnectedAsync()
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            return;
+        }
+
+        await _connectionLock.WaitAsync();
+        try
+        {
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                return;
+            }
+
+            _hubConnection ??= BuildConnection();
+            await _hubConnection.StartAsync();
+            await JoinKnownGroupsAsync();
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
+    private HubConnection BuildConnection()
+    {
+        var connection = new HubConnectionBuilder()
+            .WithUrl(_hubUri)
             .WithAutomaticReconnect()
             .Build();
 
-        // Event handlers for receiving updates
-/*         _hubConnection.On<MatchDetailsDto>("ReceivePoint", match =>
-        {
-            OnPointReceived?.Invoke(match);
-        }); */
-
-        _hubConnection.On<MatchDetailsDto>("ReceiveMatchUpdate", match =>
+        connection.On<MatchDetailsDto>("ReceiveMatchUpdate", match =>
         {
             OnMatchUpdated?.Invoke(match);
         });
 
-        await _hubConnection.StartAsync();
+        connection.Reconnected += async _ => await JoinKnownGroupsAsync();
+
+        return connection;
+    }
+
+    private async Task JoinKnownGroupsAsync()
+    {
+        foreach (var matchId in _matchGroups)
+        {
+            await JoinMatchGroupAsync(matchId);
+        }
+
+        foreach (var tournamentId in _tournamentGroups)
+        {
+            await JoinTournamentGroupAsync(tournamentId);
+        }
+    }
+
+    private Task JoinMatchGroupAsync(Guid matchId)
+    {
+        return _hubConnection?.InvokeAsync("JoinMatchGroup", matchId) ?? Task.CompletedTask;
+    }
+
+    private Task JoinTournamentGroupAsync(Guid tournamentId)
+    {
+        return _hubConnection?.InvokeAsync("JoinTournamentGroup", tournamentId) ?? Task.CompletedTask;
     }
 
     public async Task StopAsync()
@@ -52,10 +111,14 @@ public class HubService(Uri uri) : IAsyncDisposable
             await _hubConnection.DisposeAsync();
             _hubConnection = null;
         }
+
+        _matchGroups.Clear();
+        _tournamentGroups.Clear();
     }
 
     public async ValueTask DisposeAsync()
     {
         await StopAsync();
+        _connectionLock.Dispose();
     }
 }

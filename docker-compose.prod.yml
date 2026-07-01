@@ -1,30 +1,4 @@
 services:
-  traefik:
-    image: traefik:v3.1
-    container_name: tennisscore-traefik
-    restart: unless-stopped
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.${TRAEFIK_CERT_RESOLVER:-letsencrypt}.acme.email=${TRAEFIK_ACME_EMAIL:?TRAEFIK_ACME_EMAIL is required}
-      - --certificatesresolvers.${TRAEFIK_CERT_RESOLVER:-letsencrypt}.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.${TRAEFIK_CERT_RESOLVER:-letsencrypt}.acme.httpchallenge=true
-      - --certificatesresolvers.${TRAEFIK_CERT_RESOLVER:-letsencrypt}.acme.httpchallenge.entrypoint=web
-      - --accesslog=true
-      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_letsencrypt:/letsencrypt
-    networks:
-      - traefik
-
   postgres:
     image: postgres:16-alpine
     container_name: tennisscore-postgres
@@ -90,30 +64,17 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: http://+:8080
+      ENABLE_HTTPS_REDIRECTION: ${ENABLE_HTTPS_REDIRECTION:-false}
       SCORE_API_URL: http://api:8080/
       SCOREHUB_URL: http://api:8080/scoreHub
-    expose:
-      - "8080"
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=tennisscore-traefik
-      - traefik.http.routers.tennisscore-webapp.rule=Host(`${TRAEFIK_HOST:?TRAEFIK_HOST is required}`)
-      - traefik.http.routers.tennisscore-webapp.entrypoints=websecure
-      - traefik.http.routers.tennisscore-webapp.tls=true
-      - traefik.http.routers.tennisscore-webapp.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
-      - traefik.http.services.tennisscore-webapp.loadbalancer.server.port=8080
-      - traefik.http.middlewares.tennisscore-auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS:?TRAEFIK_BASIC_AUTH_USERS is required}
-      - traefik.http.routers.tennisscore-webapp.middlewares=tennisscore-auth
+    ports:
+      - "${WEBAPP_HTTP_PORT:-8080}:8080"
     networks:
       - tennisscore-internal
-      - traefik
 
 volumes:
-  traefik_letsencrypt:
   postgres_data:
 
 networks:
   tennisscore-internal:
     driver: bridge
-  traefik:
-    name: tennisscore-traefik

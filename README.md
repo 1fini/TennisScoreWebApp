@@ -133,7 +133,7 @@ Commit both the updated `swagger.json` and generated `Services/TennisApiClient.c
 
 ## Production Deployment
 
-The repository includes a production-oriented Docker Compose file:
+The repository includes a production-oriented Docker Compose file for the Raspberry Pi application host:
 
 ```text
 docker-compose.prod.yml
@@ -148,17 +148,13 @@ cp .env.prod.example .env.prod
 Edit `.env.prod`:
 
 ```env
-TRAEFIK_HOST=tennis.example.com
-TRAEFIK_ACME_EMAIL=admin@example.com
-TRAEFIK_CERT_RESOLVER=letsencrypt
-TRAEFIK_LOG_LEVEL=INFO
-TRAEFIK_BASIC_AUTH_USERS=tmc:$$2y$$05$$yHSYiX0E7cIzD5vD3GTrFeL7Q4aOA7eomJHjfyZGgpdEnsRn9trP2
-
 API_IMAGE=1fini/tennisscoreapi:latest
 MIGRATIONS_IMAGE=1fini/tennisscoreapi-migrations:latest
 WEBAPP_IMAGE=1fini/tennisscore-webapp:latest
 
 ASPNETCORE_ENVIRONMENT=Production
+ENABLE_HTTPS_REDIRECTION=false
+WEBAPP_HTTP_PORT=8080
 
 DB_NAME=tennisscore
 DB_USER=tennisscore
@@ -194,13 +190,7 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml --profile migrati
 
 The migration service is behind the `migrations` profile, so it does not run during a normal `up -d`. It waits for the PostgreSQL health check before applying migrations.
 
-The WebApp is protected by Traefik Basic Auth. Generate a replacement user hash with:
-
-```bash
-htpasswd -nbB tmc 'your-password'
-```
-
-When storing the hash in `.env.prod`, replace each `$` printed by `htpasswd` with `$$` so Docker Compose does not treat hash fragments as variables.
+Expose the WebApp through the existing external reverse proxy by forwarding traffic to `http://<raspberry-pi-host>:${WEBAPP_HTTP_PORT}`.
 
 Inspect logs:
 
@@ -214,12 +204,11 @@ Stop the stack:
 docker compose --env-file .env.prod -f docker-compose.prod.yml down
 ```
 
-PostgreSQL data and Traefik certificates are stored in Docker volumes:
+PostgreSQL data is stored in a Docker volume:
 
 - `postgres_data`
-- `traefik_letsencrypt`
 
-Do not remove those volumes unless you intentionally want to reset data/certificates.
+Do not remove this volume unless you intentionally want to reset database data.
 
 ## Docker Images
 
@@ -242,22 +231,23 @@ This makes the stack suitable for Raspberry Pi deployments.
 | --- | --- | --- |
 | `SCORE_API_URL` | Internal API base URL used by the WebApp | `http://api:8080/` |
 | `SCOREHUB_URL` | Internal SignalR hub URL used by the WebApp | `http://api:8080/scoreHub` |
+| `ENABLE_HTTPS_REDIRECTION` | Enables ASP.NET Core HTTPS redirection and HSTS inside the WebApp container | `false` |
+| `WEBAPP_HTTP_PORT` | Host HTTP port exposed by the WebApp container for the external reverse proxy | `8080` |
 | `MIGRATIONS_IMAGE` | EF Core migration bundle image | `1fini/tennisscoreapi-migrations:latest` |
-| `TRAEFIK_HOST` | Public hostname served by Traefik | `tennis.example.com` |
-| `TRAEFIK_ACME_EMAIL` | Email used for Let's Encrypt certificates | `admin@example.com` |
-| `TRAEFIK_BASIC_AUTH_USERS` | Traefik Basic Auth users in htpasswd format, with `$` escaped as `$$` in `.env.prod` | `tmc:$$2y$$...` |
 | `DB_NAME` | PostgreSQL database name | `tennisscore` |
 | `DB_USER` | PostgreSQL user | `tennisscore` |
 | `DB_PASSWORD` | PostgreSQL password | `change-me` |
 
 ## Production Notes
 
-- HTTPS is terminated by Traefik, not by the application containers.
+- HTTPS is terminated by the external reverse proxy, not by the application containers.
+- Keep `ENABLE_HTTPS_REDIRECTION=false` when the WebApp container is served over HTTP, including direct Raspberry Pi testing and Traefik TLS termination.
 - The WebApp and API listen on HTTP port `8080` inside Docker.
 - The API is not exposed publicly by the compose file.
+- The WebApp is exposed on `WEBAPP_HTTP_PORT` so the external reverse proxy can route to the Raspberry Pi.
 - Database migrations are explicit and run through the `migrations` compose profile.
 - PostgreSQL has a Docker health check used by the migration container.
-- The WebApp is protected at the reverse proxy layer with Traefik Basic Auth.
+- Authentication and Basic Auth are handled by the external reverse proxy layer.
 
 ## Roadmap
 
