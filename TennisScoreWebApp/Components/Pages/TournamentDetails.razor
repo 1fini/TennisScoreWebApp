@@ -103,7 +103,7 @@ else
             @foreach (var match in FilteredMatches.Take(ShowAll ? FilteredMatches.Count : 6))
             {
                 <div class="col-12 col-md-6 col-lg-4">
-                    <div class="card shadow-sm match-card position-relative"
+                    <div class="card shadow-sm match-card position-relative @(highlightedMatchIds.Contains(match.Id) ? "score-update-highlight" : null)"
                          role="link"
                          tabindex="0"
                          @onclick="() => GoToMatch(match.Id)"
@@ -131,11 +131,11 @@ else
                                         </td>
                                         @foreach (var set in match.Sets)
                                         {
-                                            <td>@GetSetCellScore(match, set, match.Player1.Id)</td>
+                                            <td class="score-value">@GetSetCellScore(match, set, match.Player1.Id)</td>
                                         }
                                         @if (!match.IsCompleted)
                                         {
-                                            <td class="fw-bold text-primary">
+                                            <td class="fw-bold text-primary score-value">
                                                 @match.Player1.CurrentScore
                                             </td>
                                         }
@@ -150,11 +150,11 @@ else
                                         </td>
                                         @foreach (var set in match.Sets)
                                         {
-                                            <td>@GetSetCellScore(match, set, match.Player2.Id)</td>
+                                            <td class="score-value">@GetSetCellScore(match, set, match.Player2.Id)</td>
                                         }
                                         @if (!match.IsCompleted)
                                         {
-                                            <td class="fw-bold text-primary">
+                                            <td class="fw-bold text-primary score-value">
                                                 @match.Player2.CurrentScore
                                             </td>
                                         }
@@ -185,6 +185,8 @@ else
     private Guid? deletingMatchId;
     private string? errorMessage;
     private string SelectedStatusFilter = "All";
+    private readonly HashSet<Guid> highlightedMatchIds = [];
+    private readonly Dictionary<Guid, int> highlightVersionsByMatchId = [];
     private List<MatchDetailsDto> Matches => Tournament?.Matches?.ToList() ?? new List<MatchDetailsDto>();
     private List<MatchDetailsDto> FilteredMatches => Matches
         .Where(match => SelectedStatusFilter == "All" || GetMatchStatus(match) == SelectedStatusFilter)
@@ -207,6 +209,8 @@ else
             var existing = Tournament?.Matches.FirstOrDefault(m => m.Id == updatedMatch.Id);
             if (existing != null)
             {
+                var scoreChanged = GetScoreSignature(existing) != GetScoreSignature(updatedMatch);
+
                 existing.Player1.CurrentScore = updatedMatch.Player1.CurrentScore;
                 existing.Player2.CurrentScore = updatedMatch.Player2.CurrentScore;
                 existing.Sets = updatedMatch.Sets;
@@ -216,6 +220,12 @@ else
                 existing.Score = updatedMatch.Score;
                 existing.WinnerFirstName = updatedMatch.WinnerFirstName;
                 existing.WinnerLastName = updatedMatch.WinnerLastName;
+
+                if (scoreChanged)
+                {
+                    _ = FlashMatchAsync(existing.Id);
+                }
+
                 StateHasChanged();
             }
         });
@@ -265,6 +275,36 @@ else
             return $"{games}({tieBreakPoints})";
 
         return games.ToString();
+    }
+
+    private static string GetScoreSignature(MatchDetailsDto match)
+    {
+        var setScores = match.Sets == null
+            ? string.Empty
+            : string.Join("|", match.Sets.Select(set =>
+                $"{set.Player1Games}-{set.Player2Games}-{set.Player1TieBreakPoints}-{set.Player2TieBreakPoints}-{set.DisplayScore}"));
+
+        return $"{match.Player1.CurrentScore}|{match.Player2.CurrentScore}|{match.Score}|{match.IsCompleted}|{setScores}";
+    }
+
+    private async Task FlashMatchAsync(Guid matchId)
+    {
+        var version = highlightVersionsByMatchId.TryGetValue(matchId, out var currentVersion)
+            ? currentVersion + 1
+            : 1;
+
+        highlightVersionsByMatchId[matchId] = version;
+        highlightedMatchIds.Add(matchId);
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(850);
+
+        if (highlightVersionsByMatchId.TryGetValue(matchId, out var latestVersion) && latestVersion == version)
+        {
+            highlightedMatchIds.Remove(matchId);
+            highlightVersionsByMatchId.Remove(matchId);
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private void GoToMatch(Guid matchId)

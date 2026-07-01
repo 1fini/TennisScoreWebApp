@@ -58,3 +58,38 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.score-value {
+    border-radius: .35rem;
+    transition: background-color .25s ease, box-shadow .25s ease;
+}
+
+.score-update-highlight {
+    animation: score-update-highlight .85s ease-out;
+}
+
+.score-update-highlight .score-value,
+.score-update-highlight.score-value {
+    background-color: rgba(25, 135, 84, .14);
+    box-shadow: 0 0 0 .18rem rgba(25, 135, 84, .08);
+}
+
+@keyframes score-update-highlight {
+    0% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, .26);
+    }
+
+    45% {
+        box-shadow: 0 0 0 .28rem rgba(25, 135, 84, .14);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .score-update-highlight {
+        animation: none;
+    }
+}
