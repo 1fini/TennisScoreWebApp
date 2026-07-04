@@ -1,8 +1,29 @@
 # TennisScoreWebApp
 
+[![Build and publish](https://github.com/1fini/TennisScoreWebApp/actions/workflows/docker-build-webapp.yml/badge.svg)](https://github.com/1fini/TennisScoreWebApp/actions/workflows/docker-build-webapp.yml)
+[![Docker image](https://img.shields.io/docker/v/1fini/tennisscore-webapp/latest?label=dockerhub)](https://hub.docker.com/r/1fini/tennisscore-webapp)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
+
 Blazor Server web application for managing tennis tournaments, players, matches, and live scoring.
 
 TennisScoreWebApp is the user-facing part of the TennisScore MVP. It consumes the TennisScoresAPI backend, listens to live score updates over SignalR, and provides a compact interface for running tournament matches point by point.
+
+## Why This Project Exists
+
+TennisScore is an open-source live tennis scoring platform for clubs, academies, associations, and amateur tournaments. The goal is to make it simple to create tournaments, score matches courtside, and share live updates without relying on expensive or closed tournament software.
+
+This repository contains the Blazor Server WebApp. The backend API and scoring domain live in the companion repository:
+
+- https://github.com/1fini/TennisScoresAPI
+
+## Demo
+
+The MVP is deployed at:
+
+- https://live.tennismentorsclub.fr
+
+The public demo can be protected by Basic Auth while the project is still in MVP mode. If you are interested in contributing and need access, open a GitHub issue.
 
 ## Features
 
@@ -114,6 +135,20 @@ export SCORE_API_URL="http://localhost:5227/"
 export SCOREHUB_URL="http://localhost:5227/scoreHub"
 dotnet run --project TennisScoreWebApp/TennisScoreWebApp.csproj
 ```
+
+## Contributing
+
+Contributions are welcome. The most useful areas right now are:
+
+- scoring screen usability for courtside usage;
+- mobile and tablet responsive behavior;
+- real-time SignalR experience and visual feedback;
+- accessibility and keyboard-friendly workflows;
+- deployment documentation and production hardening.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+Good first contributions are usually small UI polish tasks, documentation fixes, accessibility improvements, or issues labeled `good first issue`.
 
 ## API Client Generation
 
@@ -252,6 +287,7 @@ This makes the stack suitable for Raspberry Pi deployments.
 ## Roadmap
 
 - Add health checks for WebApp and API.
+- Add temporary undo for the last scored point once the API supports it.
 - Replace Basic Auth with application-level authentication when user onboarding needs it.
 - Harden production headers and forwarded header handling behind Traefik.
 - Improve observability with structured logs and deployment documentation.
