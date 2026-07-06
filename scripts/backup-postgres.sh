@@ -5,24 +5,30 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+COMPOSE_FILES="${COMPOSE_FILES:-$COMPOSE_FILE}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 
 cd "$REPO_DIR"
 
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  echo "Missing compose file: $COMPOSE_FILE" >&2
-  exit 1
-fi
-
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing environment file: $ENV_FILE" >&2
   exit 1
 fi
 
+COMPOSE_ARGS=()
+IFS=':' read -r -a compose_files <<< "$COMPOSE_FILES"
+for compose_file in "${compose_files[@]}"; do
+  if [[ ! -f "$compose_file" ]]; then
+    echo "Missing compose file: $compose_file" >&2
+    exit 1
+  fi
+  COMPOSE_ARGS+=("-f" "$compose_file")
+done
+
 compose() {
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+  docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" "$@"
 }
 
 mkdir -p "$BACKUP_DIR"
