@@ -245,6 +245,47 @@ PostgreSQL data is stored in a Docker volume:
 
 Do not remove this volume unless you intentionally want to reset database data.
 
+### Backup and Restore
+
+PostgreSQL backups should be stored outside Git, ideally on the production server under a directory such as:
+
+```text
+/opt/tennisscore/backups
+```
+
+Create a compressed PostgreSQL custom-format backup:
+
+```bash
+BACKUP_DIR=/opt/tennisscore/backups bash ./scripts/backup-postgres.sh
+```
+
+By default, the backup script:
+
+- reads `.env.prod` and `docker-compose.prod.yml`;
+- runs `pg_dump` from the running `postgres` service;
+- writes a file named `tennisscore-postgres-<timestamp>.dump.gz`;
+- removes backups older than 14 days.
+
+Override retention when needed:
+
+```bash
+RETENTION_DAYS=30 BACKUP_DIR=/opt/tennisscore/backups bash ./scripts/backup-postgres.sh
+```
+
+Restore a backup explicitly:
+
+```bash
+bash ./scripts/restore-postgres.sh /opt/tennisscore/backups/tennisscore-postgres-YYYYMMDDTHHMMSSZ.dump.gz
+```
+
+The restore script asks for a `RESTORE` confirmation before running `pg_restore --clean --if-exists`.
+
+Example daily cron entry:
+
+```cron
+15 2 * * * cd /opt/tennisscore && BACKUP_DIR=/opt/tennisscore/backups bash ./scripts/backup-postgres.sh >> /opt/tennisscore/backups/backup.log 2>&1
+```
+
 ## Docker Images
 
 The production compose file expects these images by default:
