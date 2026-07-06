@@ -286,6 +286,12 @@ Example daily cron entry:
 15 2 * * * cd /opt/tennisscore && BACKUP_DIR=/opt/tennisscore/backups bash ./scripts/backup-postgres.sh >> /opt/tennisscore/backups/backup.log 2>&1
 ```
 
+Test the backup/restore scripts against an isolated temporary PostgreSQL container:
+
+```bash
+bash ./scripts/test-postgres-backup-restore.sh
+```
+
 ## Docker Images
 
 The production compose file expects these images by default:
