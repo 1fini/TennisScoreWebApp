@@ -24,6 +24,8 @@ builder.Services.AddHttpClient<ITennisApiClient, TennisApiClient>(client =>
 });
 builder.Services.AddScoped<IUndoMatchApi, TennisApiUndoMatchApi>();
 builder.Services.AddScoped<IMatchUndoService, MatchUndoService>();
+builder.Services.AddScoped<IMatchAnalyticsApi, TennisApiMatchAnalyticsApi>();
+builder.Services.AddScoped<IMatchAnalyticsService, MatchAnalyticsService>();
 
 builder.Services.AddScoped(_ => new HubService(new Uri(scoreHubUrl)));
 
