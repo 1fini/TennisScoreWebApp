@@ -31,6 +31,8 @@ The public demo can be protected by Basic Auth while the project is still in MVP
 - Player list, player creation, and player deletion.
 - Match creation inside a tournament.
 - Live match detail page with point entry.
+- Confirmed Undo Last Point for active and completed matches, with authoritative score reconciliation.
+- Responsive match statistics for total points, aces, double faults, winners, errors, and available service/return counts.
 - Point types for winners, aces, double faults, forced errors, unforced errors, and time violations.
 - Completed match display with winner and final score.
 - Tournament match cards with status filtering: `All`, `Not started`, `Live`, `Finished`.
@@ -113,6 +115,12 @@ dotnet restore
 dotnet build
 ```
 
+Run the WebApp regression suite:
+
+```bash
+dotnet test TennisScoreWebApp.Tests/TennisScoreWebApp.Tests.csproj
+```
+
 Run the WebApp:
 
 ```bash
@@ -173,6 +181,8 @@ The repository includes a production-oriented Docker Compose file for the Raspbe
 ```text
 docker-compose.prod.yml
 ```
+
+> **Release safety gate:** the current API/WebApp release depends on the additive `MatchEvent` migration used by Undo and Match Analytics. Do not deploy the new API or WebApp images to the Raspberry Pi and do not run the migration until backup **and restore** have been manually validated end to end against the real production PostgreSQL procedure. The isolated test script below is useful CI evidence, but it does not satisfy this production gate.
 
 Create a production environment file from the example:
 
@@ -292,6 +302,8 @@ Test the backup/restore scripts against an isolated temporary PostgreSQL contain
 bash ./scripts/test-postgres-backup-restore.sh
 ```
 
+This isolated test does not replace the manual production backup/restore validation required by the release safety gate above.
+
 ## Docker Images
 
 The production compose file expects these images by default:
@@ -334,7 +346,6 @@ This makes the stack suitable for Raspberry Pi deployments.
 ## Roadmap
 
 - Add health checks for WebApp and API.
-- Add temporary undo for the last scored point once the API supports it.
 - Replace Basic Auth with application-level authentication when user onboarding needs it.
 - Harden production headers and forwarded header handling behind Traefik.
 - Improve observability with structured logs and deployment documentation.
