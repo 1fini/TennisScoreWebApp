@@ -30,9 +30,12 @@ else
             <p class="card-text mb-3"><strong>Date:</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
 
             <div class="match-correction-actions d-flex align-items-start gap-2 flex-wrap mb-3">
-                <NavLink class="btn btn-outline-primary btn-sm" href="@($"/match/{Match.Id}/stats")">
+                <button type="button"
+                        class="btn btn-outline-primary btn-sm"
+                        disabled="@IsScoreActionInProgress"
+                        @onclick="GoToStatistics">
                     Statistics
-                </NavLink>
+                </button>
                 @if (undoConfirmation.IsPending)
                 {
                     <div class="d-flex align-items-center gap-2 flex-wrap" role="group" aria-label="Confirm undo last point">
@@ -471,6 +474,7 @@ else
     {
         if (Match == null || IsMatchFinished || IsScoreActionInProgress) return;
 
+        undoConfirmation.Clear();
         ClearUndoFeedback();
         var scoreBeforePoint = GetScoreSignature(Match);
         var addPointRequest = new AddPointRequest
@@ -567,6 +571,14 @@ else
         undoFeedbackMessage = null;
         undoFeedbackOutcome = null;
         undoFeedbackIsWarning = false;
+    }
+
+    private void GoToStatistics()
+    {
+        if (!IsScoreActionInProgress)
+        {
+            Navigation.NavigateTo($"/match/{MatchId}/stats");
+        }
     }
 
     private void GoBack()

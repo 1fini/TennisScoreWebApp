@@ -182,7 +182,8 @@ The repository includes a production-oriented Docker Compose file for the Raspbe
 docker-compose.prod.yml
 ```
 
-> **Release safety gate:** the current API/WebApp release depends on the additive `MatchEvent` migration used by Undo and Match Analytics. Do not deploy the new API or WebApp images to the Raspberry Pi and do not run the migration until backup **and restore** have been manually validated end to end against the real production PostgreSQL procedure. The isolated test script below is useful CI evidence, but it does not satisfy this production gate.
+> [!WARNING]
+> **Production safety gate:** do not deploy the new TennisScoresAPI or TennisScoreWebApp release to the Raspberry Pi, and do not apply the additive `MatchEvent` migration, until the real production PostgreSQL backup **and restore** procedure has been manually validated end to end. Development, CI, image builds, and merges do not satisfy this gate. `--skip-migration` does not authorize deployment before that validation.
 
 Create a production environment file from the example:
 
