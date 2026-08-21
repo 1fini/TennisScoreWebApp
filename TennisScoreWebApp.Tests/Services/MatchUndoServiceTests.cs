@@ -124,6 +124,7 @@ public class MatchUndoServiceTests
         Assert.Equal(UndoMatchOutcome.RefreshFailed, result.Outcome);
         Assert.Contains("point was undone", result.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Null(result.Match);
+        Assert.True(result.RequiresScoreReconciliation);
     }
 
     [Fact]

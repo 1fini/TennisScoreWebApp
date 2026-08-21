@@ -23,6 +23,13 @@ public sealed record UndoMatchResult(
     MatchDetailsDto? Match = null)
 {
     public bool Succeeded => Outcome == UndoMatchOutcome.Success;
+    public bool RequiresScoreReconciliation => Outcome == UndoMatchOutcome.RefreshFailed;
+}
+
+internal static class MatchScoreReconciliation
+{
+    public static bool IsPending(UndoMatchResult result, bool liveScoreChangedDuringRequest)
+        => result.RequiresScoreReconciliation && !liveScoreChangedDuringRequest;
 }
 
 internal interface IUndoMatchApi
