@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject ITennisApiClient TennisApiClient
 @inject HubService HubService
+@inject IMatchUndoService MatchUndoService
 
 @implements IAsyncDisposable
 
@@ -27,6 +28,52 @@ else
             <h3 class="card-title mb-3">@Match.Player1.LastName vs @Match.Player2.LastName</h3>
             <p class="card-text mb-2"><strong>Tournament:</strong> @Match.TournamentName</p>
             <p class="card-text mb-3"><strong>Date:</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
+
+            <div class="match-correction-actions mb-3">
+                @if (undoConfirmationRequested)
+                {
+                    <div class="d-flex align-items-center gap-2 flex-wrap" role="group" aria-label="Confirm undo last point">
+                        <span class="fw-semibold">Undo the most recently recorded point?</span>
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                disabled="@IsScoreActionInProgress"
+                                @onclick="ConfirmUndoLastPoint">
+                            Confirm undo
+                        </button>
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                disabled="@IsScoreActionInProgress"
+                                @onclick="CancelUndoLastPoint">
+                            Cancel
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <button type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            disabled="@IsScoreActionInProgress"
+                            aria-label="Undo last recorded point"
+                            @onclick="RequestUndoLastPoint">
+                        @if (isUndoInProgress)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                            <span>Undoing...</span>
+                        }
+                        else
+                        {
+                            <span>Undo last point</span>
+                        }
+                    </button>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(undoFeedbackMessage))
+            {
+                <div class="alert @UndoFeedbackAlertClass py-2" role="@UndoFeedbackRole" aria-live="polite">
+                    @undoFeedbackMessage
+                </div>
+            }
 
             @if (IsMatchFinished)
             {
@@ -137,6 +184,10 @@ else
             text-transform: uppercase;
         }
 
+        .match-correction-actions .btn {
+            min-height: 2.75rem;
+        }
+
         @@media (max-width: 576px) {
             .point-actions-grid {
                 grid-template-columns: 1fr;
@@ -144,6 +195,10 @@ else
 
             .point-action-button {
                 text-align: center;
+            }
+
+            .match-correction-actions > .btn {
+                width: 100%;
             }
         }
     </style>
@@ -236,6 +291,11 @@ else
     private MatchDetailsDto? Match { get; set; }
     private bool scoreHighlightActive;
     private int scoreHighlightVersion;
+    private bool undoConfirmationRequested;
+    private bool isUndoInProgress;
+    private bool isPointActionInProgress;
+    private string? undoFeedbackMessage;
+    private UndoMatchOutcome? undoFeedbackOutcome;
 
     protected override async Task OnInitializedAsync()
     {
@@ -255,16 +315,7 @@ else
             if (updatedMatch.Id == Match?.Id)
             {
                 var scoreChanged = GetScoreSignature(Match) != GetScoreSignature(updatedMatch);
-
-                Match.Player1.CurrentScore = updatedMatch.Player1.CurrentScore;
-                Match.Player2.CurrentScore = updatedMatch.Player2.CurrentScore;
-                Match.Sets = updatedMatch.Sets;
-                Match.ServingPlayerId = updatedMatch.ServingPlayerId;
-                Match.EndTime = updatedMatch.EndTime;
-                Match.IsCompleted = updatedMatch.IsCompleted;
-                Match.Score = updatedMatch.Score;
-                Match.WinnerFirstName = updatedMatch.WinnerFirstName;
-                Match.WinnerLastName = updatedMatch.WinnerLastName;
+                Match = updatedMatch;
 
                 if (scoreChanged)
                 {
@@ -278,6 +329,20 @@ else
 
     private bool IsMatchFinished
         => Match?.IsCompleted == true || Match?.EndTime != null || !string.IsNullOrWhiteSpace(WinnerName);
+
+    private bool IsScoreActionInProgress
+        => isUndoInProgress || isPointActionInProgress;
+
+    private string UndoFeedbackAlertClass
+        => undoFeedbackOutcome switch
+        {
+            UndoMatchOutcome.Success => "alert-success",
+            UndoMatchOutcome.RefreshFailed => "alert-warning",
+            _ => "alert-danger"
+        };
+
+    private string UndoFeedbackRole
+        => undoFeedbackOutcome == UndoMatchOutcome.Success ? "status" : "alert";
 
     private string WinnerName
         => $"{Match?.WinnerFirstName} {Match?.WinnerLastName}".Trim();
@@ -342,10 +407,12 @@ else
         => pointType is PointType.Ace or PointType.DoubleFault;
 
     private bool IsPointActionDisabled(PlayerDto player, PointType pointType)
-        => IsServerOnlyPoint(pointType) && !IsServing(player);
+        => IsScoreActionInProgress || IsServerOnlyPoint(pointType) && !IsServing(player);
 
     private string GetPointActionTitle(PlayerDto player, PointType pointType)
-        => IsPointActionDisabled(player, pointType)
+        => IsScoreActionInProgress
+            ? "Wait for the current score update to finish."
+            : IsPointActionDisabled(player, pointType)
             ? $"{GetPointLabel(pointType)} can only be recorded for the serving player."
             : GetPointLabel(pointType);
 
@@ -379,7 +446,7 @@ else
 
     private async Task AddPoint(Guid player, PointType pointType)
     {
-        if (Match == null || IsMatchFinished) return;
+        if (Match == null || IsMatchFinished || IsScoreActionInProgress) return;
 
         var scoreBeforePoint = GetScoreSignature(Match);
         var addPointRequest = new AddPointRequest
@@ -389,18 +456,73 @@ else
             PointType = pointType
         };
 
-        // Add the point through the API
-        await TennisApiClient.AddPointAsync(addPointRequest);
-
-        // Refresh the match after SignalR propagation
-        var updatedMatch = await TennisApiClient.MatchesGETAsync(Match.Id);
-        Match = updatedMatch;
-
-        if (scoreBeforePoint != GetScoreSignature(Match))
+        isPointActionInProgress = true;
+        try
         {
-            _ = FlashScoreAsync(++scoreHighlightVersion);
+            // Add the point through the API
+            await TennisApiClient.AddPointAsync(addPointRequest);
+
+            // Reconcile with the authoritative API response after SignalR propagation.
+            var updatedMatch = await TennisApiClient.MatchesGETAsync(Match.Id);
+            Match = updatedMatch;
+
+            if (scoreBeforePoint != GetScoreSignature(Match))
+            {
+                _ = FlashScoreAsync(++scoreHighlightVersion);
+            }
+        }
+        finally
+        {
+            isPointActionInProgress = false;
         }
     }
+
+    private void RequestUndoLastPoint()
+    {
+        if (IsScoreActionInProgress) return;
+
+        undoFeedbackMessage = null;
+        undoFeedbackOutcome = null;
+        undoConfirmationRequested = true;
+    }
+
+    private void CancelUndoLastPoint()
+    {
+        if (IsScoreActionInProgress) return;
+        undoConfirmationRequested = false;
+    }
+
+    private async Task ConfirmUndoLastPoint()
+    {
+        if (Match == null || IsScoreActionInProgress) return;
+
+        undoConfirmationRequested = false;
+        isUndoInProgress = true;
+        undoFeedbackMessage = null;
+        undoFeedbackOutcome = null;
+
+        var scoreBeforeUndo = GetScoreSignature(Match);
+        try
+        {
+            var result = await MatchUndoService.UndoLastPointAsync(Match.Id);
+            undoFeedbackMessage = result.Message;
+            undoFeedbackOutcome = result.Outcome;
+
+            if (result.Match is not null)
+            {
+                Match = result.Match;
+                if (scoreBeforeUndo != GetScoreSignature(Match))
+                {
+                    _ = FlashScoreAsync(++scoreHighlightVersion);
+                }
+            }
+        }
+        finally
+        {
+            isUndoInProgress = false;
+        }
+    }
+
     private void GoBack()
     {
         if (Match?.TournamentId != null)
