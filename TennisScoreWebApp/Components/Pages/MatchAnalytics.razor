@@ -7,7 +7,7 @@
 @implements IAsyncDisposable
 @rendermode InteractiveServer
 
-<div class="d-flex align-items-center justify-content-between gap-3 mb-4">
+<div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-4">
     <div>
         <h2 class="mb-1">Match statistics</h2>
         @if (analytics is not null)
@@ -17,7 +17,7 @@
             </span>
         }
     </div>
-    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="GoBackToMatch">
+    <button type="button" class="btn btn-outline-secondary btn-sm analytics-page-action" @onclick="GoBackToMatch">
         Back to match
     </button>
 </div>
@@ -39,7 +39,7 @@ else if (loadOutcome == MatchAnalyticsLoadOutcome.UnexpectedError)
 {
     <div class="alert alert-danger" role="alert">
         <div>@loadMessage</div>
-        <button type="button" class="btn btn-outline-danger btn-sm mt-3" @onclick="LoadAnalyticsAsync">
+        <button type="button" class="btn btn-outline-danger btn-sm analytics-page-action mt-3" @onclick="LoadAnalyticsAsync">
             Try again
         </button>
     </div>
@@ -47,11 +47,11 @@ else if (loadOutcome == MatchAnalyticsLoadOutcome.UnexpectedError)
 else if (analytics is not null)
 {
     <div class="card shadow-sm analytics-card">
-        <div class="card-body p-0">
-            <div class="analytics-heading" aria-label="Players">
-                <div class="player-name text-start">@Player1Name</div>
-                <div class="text-muted text-center small fw-semibold">COMPARISON</div>
-                <div class="player-name text-end">@Player2Name</div>
+        <div class="card-body p-0" role="table" aria-label="Match statistics comparison">
+            <div class="analytics-heading" role="row">
+                <div class="player-name text-start" role="columnheader">@Player1Name</div>
+                <div class="text-muted text-center small fw-semibold" role="columnheader">METRIC</div>
+                <div class="player-name text-end" role="columnheader">@Player2Name</div>
             </div>
 
             @if (!analytics.ServiceContextAvailable)
@@ -64,17 +64,17 @@ else if (analytics is not null)
             <div class="analytics-metrics">
                 @foreach (var metric in metrics)
                 {
-                    <div class="analytics-row"
+                    <div class="analytics-row" role="row"
                          aria-label="@GetMetricAriaLabel(metric)">
-                        <div class="metric-value text-start">@FormatMetricValue(metric.Player1Value, metric.IsAvailable)</div>
-                        <div class="metric-label text-center">
+                        <div class="metric-value text-start" role="cell">@FormatMetricValue(metric.Player1Value, metric.IsAvailable)</div>
+                        <div class="metric-label text-center" role="rowheader">
                             <span>@metric.Label</span>
                             @if (!string.IsNullOrWhiteSpace(metric.Context))
                             {
                                 <small>@metric.Context</small>
                             }
                         </div>
-                        <div class="metric-value text-end">@FormatMetricValue(metric.Player2Value, metric.IsAvailable)</div>
+                        <div class="metric-value text-end" role="cell">@FormatMetricValue(metric.Player2Value, metric.IsAvailable)</div>
                     </div>
                 }
             </div>
@@ -85,6 +85,10 @@ else if (analytics is not null)
 <style>
     .analytics-card {
         overflow: hidden;
+    }
+
+    .analytics-page-action {
+        min-height: 2.75rem;
     }
 
     .analytics-heading,
@@ -122,6 +126,7 @@ else if (analytics is not null)
         font-size: 1.35rem;
         font-variant-numeric: tabular-nums;
         font-weight: 700;
+        overflow-wrap: anywhere;
     }
 
     .metric-label {
@@ -162,6 +167,10 @@ else if (analytics is not null)
 
         .metric-value {
             font-size: 1.2rem;
+        }
+
+        .analytics-page-action {
+            width: 100%;
         }
     }
 </style>
@@ -221,7 +230,7 @@ else if (analytics is not null)
             : $"{metric.Label}: unavailable for both players";
 
     private static string FormatMetricValue(int? value, bool isAvailable)
-        => isAvailable && value.HasValue ? value.Value.ToString() : "Unavailable";
+        => isAvailable && value.HasValue ? value.Value.ToString() : "—";
 
     private void GoBackToMatch() => Navigation.NavigateTo($"/match/{MatchId}");
 

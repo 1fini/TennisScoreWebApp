@@ -115,6 +115,20 @@ public class MatchAnalyticsServiceTests
         Assert.All(errorMetrics, metric => Assert.Equal("Committed by player", metric.Context));
     }
 
+    [Fact]
+    public async Task LoadPropagatesCallerCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var service = new MatchAnalyticsService(new FakeMatchAnalyticsApi
+        {
+            Exception = new OperationCanceledException(cancellation.Token)
+        });
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => service.LoadAsync(Guid.NewGuid(), cancellation.Token));
+    }
+
     private static MatchAnalyticsDto CreateAnalytics(bool isCompleted, bool serviceContextAvailable)
         => new()
         {

@@ -126,6 +126,45 @@ public class MatchUndoServiceTests
         Assert.Null(result.Match);
     }
 
+    [Fact]
+    public async Task FailedUndoReleasesInFlightGuardForRetry()
+    {
+        var api = new FakeUndoMatchApi
+        {
+            UndoException = new HttpRequestException("offline")
+        };
+        var service = new MatchUndoService(api);
+
+        var failedResult = await service.UndoLastPointAsync(Guid.NewGuid());
+        api.UndoException = null;
+        var retryResult = await service.UndoLastPointAsync(Guid.NewGuid());
+
+        Assert.Equal(UndoMatchOutcome.UnexpectedError, failedResult.Outcome);
+        Assert.True(retryResult.Succeeded);
+        Assert.Equal(2, api.UndoCalls);
+        Assert.Equal(1, api.GetMatchCalls);
+    }
+
+    [Fact]
+    public async Task CancelledUndoReleasesInFlightGuardForRetry()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var api = new FakeUndoMatchApi
+        {
+            UndoException = new OperationCanceledException(cancellation.Token)
+        };
+        var service = new MatchUndoService(api);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => service.UndoLastPointAsync(Guid.NewGuid(), cancellation.Token));
+        api.UndoException = null;
+        var retryResult = await service.UndoLastPointAsync(Guid.NewGuid());
+
+        Assert.True(retryResult.Succeeded);
+        Assert.Equal(2, api.UndoCalls);
+    }
+
     private static ApiException CreateApiException(int statusCode)
         => new(
             "API error",
