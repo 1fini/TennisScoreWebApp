@@ -1,0 +1,234 @@
+@page "/match/{MatchId:guid}/stats"
+@using TennisScoreWebApp.Infrastructure.ExternalServices.TennisScoreApi
+@using TennisScoreWebApp.Services
+@inject NavigationManager Navigation
+@inject IMatchAnalyticsService MatchAnalyticsService
+
+@implements IAsyncDisposable
+@rendermode InteractiveServer
+
+<div class="d-flex align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="mb-1">Match statistics</h2>
+        @if (analytics is not null)
+        {
+            <span class="badge @(analytics.IsCompleted ? "bg-secondary" : "bg-success")">
+                @(analytics.IsCompleted ? "Finished" : "In progress")
+            </span>
+        }
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="GoBackToMatch">
+        Back to match
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="d-flex align-items-center gap-2" role="status" aria-live="polite">
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        <span>Loading match statistics...</span>
+    </div>
+}
+else if (loadOutcome == MatchAnalyticsLoadOutcome.MatchNotFound)
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Match not found.</strong> @loadMessage
+    </div>
+}
+else if (loadOutcome == MatchAnalyticsLoadOutcome.UnexpectedError)
+{
+    <div class="alert alert-danger" role="alert">
+        <div>@loadMessage</div>
+        <button type="button" class="btn btn-outline-danger btn-sm mt-3" @onclick="LoadAnalyticsAsync">
+            Try again
+        </button>
+    </div>
+}
+else if (analytics is not null)
+{
+    <div class="card shadow-sm analytics-card">
+        <div class="card-body p-0">
+            <div class="analytics-heading" aria-label="Players">
+                <div class="player-name text-start">@Player1Name</div>
+                <div class="text-muted text-center small fw-semibold">COMPARISON</div>
+                <div class="player-name text-end">@Player2Name</div>
+            </div>
+
+            @if (!analytics.ServiceContextAvailable)
+            {
+                <div class="alert alert-info mx-3 mb-3" role="status">
+                    Service and return context is unavailable for this match. Points served and returned are not treated as zero.
+                </div>
+            }
+
+            <div class="analytics-metrics">
+                @foreach (var metric in metrics)
+                {
+                    <div class="analytics-row"
+                         aria-label="@GetMetricAriaLabel(metric)">
+                        <div class="metric-value text-start">@FormatMetricValue(metric.Player1Value, metric.IsAvailable)</div>
+                        <div class="metric-label text-center">
+                            <span>@metric.Label</span>
+                            @if (!string.IsNullOrWhiteSpace(metric.Context))
+                            {
+                                <small>@metric.Context</small>
+                            }
+                        </div>
+                        <div class="metric-value text-end">@FormatMetricValue(metric.Player2Value, metric.IsAvailable)</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .analytics-card {
+        overflow: hidden;
+    }
+
+    .analytics-heading,
+    .analytics-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(7.5rem, 1.15fr) minmax(0, 1fr);
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .analytics-heading {
+        background: var(--bs-light);
+        border-bottom: 1px solid var(--bs-border-color);
+        padding: 1rem;
+    }
+
+    .player-name {
+        overflow-wrap: anywhere;
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .analytics-row {
+        min-height: 4rem;
+        padding: .75rem 1rem;
+    }
+
+    .analytics-row + .analytics-row {
+        border-top: 1px solid var(--bs-border-color);
+    }
+
+    .metric-value {
+        color: var(--bs-primary);
+        font-size: 1.35rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+    }
+
+    .metric-label {
+        color: var(--bs-body-color);
+        font-size: .9rem;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+
+    .metric-label small {
+        color: var(--bs-secondary-color);
+        display: block;
+        font-size: .72rem;
+        font-weight: 400;
+        margin-top: .15rem;
+    }
+
+    @@media (max-width: 576px) {
+        .analytics-heading,
+        .analytics-row {
+            grid-template-columns: minmax(0, 1fr) 6.75rem minmax(0, 1fr);
+            gap: .4rem;
+        }
+
+        .analytics-heading,
+        .analytics-row {
+            padding-left: .75rem;
+            padding-right: .75rem;
+        }
+
+        .player-name {
+            font-size: .95rem;
+        }
+
+        .metric-label {
+            font-size: .8rem;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public Guid MatchId { get; set; }
+
+    private CancellationTokenSource? loadCancellation;
+    private MatchAnalyticsDto? analytics;
+    private IReadOnlyList<MatchAnalyticsMetric> metrics = [];
+    private MatchAnalyticsLoadOutcome? loadOutcome;
+    private string? loadMessage;
+    private bool isLoading = true;
+
+    private string Player1Name => MatchAnalyticsPresentation.GetPlayerName(analytics!.Player1);
+    private string Player2Name => MatchAnalyticsPresentation.GetPlayerName(analytics!.Player2);
+
+    protected override Task OnParametersSetAsync() => LoadAnalyticsAsync();
+
+    private async Task LoadAnalyticsAsync()
+    {
+        loadCancellation?.Cancel();
+        loadCancellation?.Dispose();
+        var cancellation = new CancellationTokenSource();
+        loadCancellation = cancellation;
+
+        isLoading = true;
+        loadOutcome = null;
+        loadMessage = null;
+        analytics = null;
+        metrics = [];
+
+        try
+        {
+            var result = await MatchAnalyticsService.LoadAsync(MatchId, cancellation.Token);
+            loadOutcome = result.Outcome;
+            loadMessage = result.Message;
+            analytics = result.Analytics;
+            metrics = analytics is null ? [] : MatchAnalyticsPresentation.CreateMetrics(analytics);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            return;
+        }
+        finally
+        {
+            if (ReferenceEquals(loadCancellation, cancellation) && !cancellation.IsCancellationRequested)
+            {
+                isLoading = false;
+            }
+        }
+    }
+
+    private string GetMetricAriaLabel(MatchAnalyticsMetric metric)
+        => metric.IsAvailable
+            ? $"{metric.Label}: {Player1Name} {metric.Player1Value}, {Player2Name} {metric.Player2Value}"
+            : $"{metric.Label}: unavailable for both players";
+
+    private static string FormatMetricValue(int? value, bool isAvailable)
+        => isAvailable && value.HasValue ? value.Value.ToString() : "Unavailable";
+
+    private void GoBackToMatch() => Navigation.NavigateTo($"/match/{MatchId}");
+
+    public ValueTask DisposeAsync()
+    {
+        loadCancellation?.Cancel();
+        loadCancellation?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

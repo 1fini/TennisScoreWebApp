@@ -29,7 +29,10 @@ else
             <p class="card-text mb-2"><strong>Tournament:</strong> @Match.TournamentName</p>
             <p class="card-text mb-3"><strong>Date:</strong> @($"{Match.StartTime:dd MMM yyyy}")</p>
 
-            <div class="match-correction-actions mb-3">
+            <div class="match-correction-actions d-flex align-items-start gap-2 flex-wrap mb-3">
+                <NavLink class="btn btn-outline-primary btn-sm" href="@($"/match/{Match.Id}/stats")">
+                    Statistics
+                </NavLink>
                 @if (undoConfirmationRequested)
                 {
                     <div class="d-flex align-items-center gap-2 flex-wrap" role="group" aria-label="Confirm undo last point">
@@ -197,8 +200,9 @@ else
                 text-align: center;
             }
 
-            .match-correction-actions > .btn {
-                width: 100%;
+            .match-correction-actions > .btn,
+            .match-correction-actions > a.btn {
+                flex: 1 0 100%;
             }
         }
     </style>
