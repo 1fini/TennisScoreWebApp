@@ -23,6 +23,7 @@ public sealed record UndoMatchResult(
     MatchDetailsDto? Match = null)
 {
     public bool Succeeded => Outcome == UndoMatchOutcome.Success;
+    public bool RequiresScoreReconciliation => Outcome == UndoMatchOutcome.RefreshFailed;
 }
 
 internal interface IUndoMatchApi

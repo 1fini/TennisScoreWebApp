@@ -81,7 +81,7 @@ else
                 </div>
             }
 
-            @if (IsMatchFinished)
+            @if (IsMatchFinished && !scoreReconciliationPending)
             {
                 <div class="alert alert-success d-flex align-items-center justify-content-between gap-3 flex-wrap" role="status">
                     <div>
@@ -210,7 +210,13 @@ else
         }
     </style>
 
-    @if (IsMatchFinished)
+    @if (scoreReconciliationPending)
+    {
+        <div class="alert alert-warning" role="status">
+            Waiting for the latest authoritative score. Point entry remains unavailable until a live update arrives or the page is refreshed.
+        </div>
+    }
+    else if (IsMatchFinished)
     {
         <div class="alert alert-secondary" role="status">
             Scoring is closed for this completed match.
@@ -304,6 +310,7 @@ else
     private string? undoFeedbackMessage;
     private UndoMatchOutcome? undoFeedbackOutcome;
     private bool undoFeedbackIsWarning;
+    private bool scoreReconciliationPending;
 
     protected override async Task OnInitializedAsync()
     {
@@ -324,6 +331,7 @@ else
             {
                 var scoreChanged = GetScoreSignature(Match) != GetScoreSignature(updatedMatch);
                 Match = updatedMatch;
+                scoreReconciliationPending = false;
 
                 if (scoreChanged)
                 {
@@ -348,7 +356,7 @@ else
         => Match?.IsCompleted == true || Match?.EndTime != null || !string.IsNullOrWhiteSpace(WinnerName);
 
     private bool IsScoreActionInProgress
-        => isUndoInProgress || isPointActionInProgress;
+        => isUndoInProgress || isPointActionInProgress || scoreReconciliationPending;
 
     private string UndoFeedbackAlertClass
         => undoFeedbackOutcome switch
@@ -532,10 +540,12 @@ else
             undoFeedbackMessage = result.Message;
             undoFeedbackOutcome = result.Outcome;
             undoFeedbackIsWarning = false;
+            scoreReconciliationPending = result.RequiresScoreReconciliation;
 
             if (result.Match is not null)
             {
                 Match = result.Match;
+                scoreReconciliationPending = false;
                 if (scoreBeforeUndo != GetScoreSignature(Match))
                 {
                     _ = FlashScoreAsync(++scoreHighlightVersion);

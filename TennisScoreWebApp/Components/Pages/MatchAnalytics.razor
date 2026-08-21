@@ -46,6 +46,13 @@ else if (loadOutcome == MatchAnalyticsLoadOutcome.UnexpectedError)
 }
 else if (analytics is not null)
 {
+    @if (!analytics.ServiceContextAvailable)
+    {
+        <div class="alert alert-info" role="status">
+            Service and return context is unavailable for this match. Points served and returned are not treated as zero.
+        </div>
+    }
+
     <div class="card shadow-sm analytics-card">
         <div class="card-body p-0" role="table" aria-label="Match statistics comparison">
             <div class="analytics-heading" role="row">
@@ -54,14 +61,7 @@ else if (analytics is not null)
                 <div class="player-name text-end" role="columnheader">@Player2Name</div>
             </div>
 
-            @if (!analytics.ServiceContextAvailable)
-            {
-                <div class="alert alert-info mx-3 mb-3" role="status">
-                    Service and return context is unavailable for this match. Points served and returned are not treated as zero.
-                </div>
-            }
-
-            <div class="analytics-metrics">
+            <div class="analytics-metrics" role="rowgroup">
                 @foreach (var metric in metrics)
                 {
                     <div class="analytics-row" role="row"
