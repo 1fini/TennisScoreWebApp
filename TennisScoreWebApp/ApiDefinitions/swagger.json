@@ -36,6 +36,69 @@
         }
       }
     },
+    "/api/LiveScore/{matchId}/undo-last-point": {
+      "post": {
+        "tags": [
+          "LiveScore"
+        ],
+        "parameters": [
+          {
+            "name": "matchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Matches": {
       "post": {
         "tags": [
@@ -82,7 +145,24 @@
             }
           },
           "400": {
-            "description": "Bad Request"
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -214,6 +294,66 @@
               "text/json": {
                 "schema": {
                   "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Matches/{id}/stats": {
+      "get": {
+        "tags": [
+          "Matches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchAnalyticsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchAnalyticsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchAnalyticsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -940,6 +1080,28 @@
         ],
         "type": "string"
       },
+      "MatchAnalyticsDto": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isCompleted": {
+            "type": "boolean"
+          },
+          "serviceContextAvailable": {
+            "type": "boolean"
+          },
+          "player1": {
+            "$ref": "#/components/schemas/PlayerMatchAnalyticsDto"
+          },
+          "player2": {
+            "$ref": "#/components/schemas/PlayerMatchAnalyticsDto"
+          }
+        },
+        "additionalProperties": false
+      },
       "MatchDetailsDto": {
         "required": [
           "player1",
@@ -1216,6 +1378,58 @@
         },
         "additionalProperties": false
       },
+      "PlayerMatchAnalyticsDto": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalPointsWon": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aces": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "doubleFaults": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "winners": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unforcedErrors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "forcedErrors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pointsServed": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "pointsReturned": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PlayingCondition": {
         "enum": [
           "Indoor",
@@ -1263,7 +1477,7 @@
             "nullable": true
           }
         },
-        "additionalProperties": { }
+        "additionalProperties": {}
       },
       "SetScoreDto": {
         "type": "object",
@@ -1422,5 +1636,22 @@
         "type": "string"
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "LiveScore"
+    },
+    {
+      "name": "Matches"
+    },
+    {
+      "name": "MatchFormats"
+    },
+    {
+      "name": "Players"
+    },
+    {
+      "name": "Tournaments"
+    }
+  ]
 }
