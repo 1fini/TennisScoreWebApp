@@ -33,7 +33,7 @@ else
                 <NavLink class="btn btn-outline-primary btn-sm" href="@($"/match/{Match.Id}/stats")">
                     Statistics
                 </NavLink>
-                @if (undoConfirmationRequested)
+                @if (undoConfirmation.IsPending)
                 {
                     <div class="d-flex align-items-center gap-2 flex-wrap" role="group" aria-label="Confirm undo last point">
                         <span class="fw-semibold">Undo the most recently recorded point?</span>
@@ -295,11 +295,12 @@ else
     private MatchDetailsDto? Match { get; set; }
     private bool scoreHighlightActive;
     private int scoreHighlightVersion;
-    private bool undoConfirmationRequested;
+    private readonly UndoConfirmationGuard undoConfirmation = new();
     private bool isUndoInProgress;
     private bool isPointActionInProgress;
     private string? undoFeedbackMessage;
     private UndoMatchOutcome? undoFeedbackOutcome;
+    private bool undoFeedbackIsWarning;
 
     protected override async Task OnInitializedAsync()
     {
@@ -323,6 +324,15 @@ else
 
                 if (scoreChanged)
                 {
+                    if (undoConfirmation.IsPending)
+                    {
+                        InvalidateUndoConfirmation();
+                    }
+                    else if (!isUndoInProgress)
+                    {
+                        ClearUndoFeedback();
+                    }
+
                     _ = FlashScoreAsync(++scoreHighlightVersion);
                 }
 
@@ -342,11 +352,12 @@ else
         {
             UndoMatchOutcome.Success => "alert-success",
             UndoMatchOutcome.RefreshFailed => "alert-warning",
+            _ when undoFeedbackIsWarning => "alert-warning",
             _ => "alert-danger"
         };
 
     private string UndoFeedbackRole
-        => undoFeedbackOutcome == UndoMatchOutcome.Success ? "status" : "alert";
+        => undoFeedbackOutcome == UndoMatchOutcome.Success || undoFeedbackIsWarning ? "status" : "alert";
 
     private string WinnerName
         => $"{Match?.WinnerFirstName} {Match?.WinnerLastName}".Trim();
@@ -452,6 +463,7 @@ else
     {
         if (Match == null || IsMatchFinished || IsScoreActionInProgress) return;
 
+        ClearUndoFeedback();
         var scoreBeforePoint = GetScoreSignature(Match);
         var addPointRequest = new AddPointRequest
         {
@@ -483,27 +495,31 @@ else
 
     private void RequestUndoLastPoint()
     {
-        if (IsScoreActionInProgress) return;
+        if (Match == null || IsScoreActionInProgress) return;
 
-        undoFeedbackMessage = null;
-        undoFeedbackOutcome = null;
-        undoConfirmationRequested = true;
+        ClearUndoFeedback();
+        undoConfirmation.Request(GetScoreSignature(Match));
     }
 
     private void CancelUndoLastPoint()
     {
         if (IsScoreActionInProgress) return;
-        undoConfirmationRequested = false;
+        undoConfirmation.Clear();
     }
 
     private async Task ConfirmUndoLastPoint()
     {
         if (Match == null || IsScoreActionInProgress) return;
 
-        undoConfirmationRequested = false;
+        if (!undoConfirmation.Matches(GetScoreSignature(Match)))
+        {
+            InvalidateUndoConfirmation();
+            return;
+        }
+
+        undoConfirmation.Clear();
         isUndoInProgress = true;
-        undoFeedbackMessage = null;
-        undoFeedbackOutcome = null;
+        ClearUndoFeedback();
 
         var scoreBeforeUndo = GetScoreSignature(Match);
         try
@@ -511,6 +527,7 @@ else
             var result = await MatchUndoService.UndoLastPointAsync(Match.Id);
             undoFeedbackMessage = result.Message;
             undoFeedbackOutcome = result.Outcome;
+            undoFeedbackIsWarning = false;
 
             if (result.Match is not null)
             {
@@ -525,6 +542,21 @@ else
         {
             isUndoInProgress = false;
         }
+    }
+
+    private void InvalidateUndoConfirmation()
+    {
+        undoConfirmation.Clear();
+        undoFeedbackMessage = "The score changed. Review the latest score before choosing Undo again.";
+        undoFeedbackOutcome = null;
+        undoFeedbackIsWarning = true;
+    }
+
+    private void ClearUndoFeedback()
+    {
+        undoFeedbackMessage = null;
+        undoFeedbackOutcome = null;
+        undoFeedbackIsWarning = false;
     }
 
     private void GoBack()
