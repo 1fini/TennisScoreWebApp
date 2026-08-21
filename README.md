@@ -174,6 +174,9 @@ The repository includes a production-oriented Docker Compose file for the Raspbe
 docker-compose.prod.yml
 ```
 
+> [!WARNING]
+> **Production safety gate:** do not deploy the new TennisScoresAPI or TennisScoreWebApp release to the Raspberry Pi, and do not apply the additive `MatchEvent` migration, until the real production PostgreSQL backup **and restore** procedure has been manually validated end to end. Development, CI, image builds, and merges do not satisfy this gate. `--skip-migration` does not authorize deployment before that validation.
+
 Create a production environment file from the example:
 
 ```bash
