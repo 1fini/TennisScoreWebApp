@@ -50,8 +50,6 @@ jobs:
           context: .
           platforms: linux/amd64
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           tags: 1fini/tennisscore-webapp:pr-${{ env.sha_short }}
 
       - name: Build and push multi-arch Docker image
@@ -63,8 +61,6 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           tags: |
             ${{ secrets.DH_USER }}/tennisscore-webapp:latest
             ${{ secrets.DH_USER }}/tennisscore-webapp:${{ env.sha_short }}
